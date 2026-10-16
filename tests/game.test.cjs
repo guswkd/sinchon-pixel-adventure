@@ -56,9 +56,26 @@ function stepIntoPortal(app,zoneId,label){
  assert.deepEqual(JSON.parse(app.run('JSON.stringify({x:player.x,y:player.y})')),fixture.destination,label+' uses the portal destination immediately');
  app.release(key);
 }
+function assertPortalPair(app,fromZone,fromLabel,toZone,toLabel){
+ const points=JSON.parse(app.run(`(()=>{
+  const from=maps[${JSON.stringify(fromZone)}].portals.find(p=>p.label===${JSON.stringify(fromLabel)});
+  const to=maps[${JSON.stringify(toZone)}].portals.find(p=>p.label===${JSON.stringify(toLabel)});
+  if(!from||!to)throw Error('Missing paired stairs '+${JSON.stringify(fromLabel)}+' / '+${JSON.stringify(toLabel)});
+  return JSON.stringify({forward:[from.tx,from.ty],destination:[to.x,to.y],back:[to.tx,to.ty],source:[from.x,from.y]});
+ })()`));
+ assert.deepEqual(points.forward,points.destination,fromLabel+' lands exactly on '+toLabel);
+ assert.deepEqual(points.back,points.source,toLabel+' returns exactly to '+fromLabel);
+}
 let app=boot();
 app.run(`for(const [direction,rows] of Object.entries({...SPRITE_FRAMES,...Object.fromEntries(Object.entries(HERO_FRAMES).map(([k,v])=>["hero-"+k,v]))})){if(rows.length!==16)throw Error(direction+' wrong height');for(const row of rows)if(row.length!==16)throw Error(direction+' row '+row+' length '+row.length);}`);
 console.log('PASS sprite dimensions: three original 16×16 bases, mirrored left, walking variants');
+for(const {number} of JSON.parse(app.run('JSON.stringify(SURFACE_EXITS.map(({number})=>({number})))')))
+ assertPortalPair(app,'street',`신촌역 ${number}번 출구`,'station',`${number}번 출구`);
+assertPortalPair(app,'street','현대백화점 B2','mall','지상 · 현대백화점 ↑');
+assertPortalPair(app,'street','U-PLEX 지하통로 ↓','mall','지상 · U-PLEX ↑');
+assertPortalPair(app,'station','현대백화점 B2 ←','mall','신촌역 →');
+assertPortalPair(app,'mall','B1 식품관 ↑','store','B2 연결층 ↓');
+console.log('PASS portal alignment: every numbered exit and indoor entrance returns to its matching stair tile');
 const autoStairsTest=boot();
 for(const [zoneId,labels] of JSON.parse(autoStairsTest.run('JSON.stringify(Object.entries(maps).map(([id,m])=>[id,m.portals.map(p=>p.label)]))')))
  for(const label of labels)stepIntoPortal(autoStairsTest,zoneId,label);
@@ -289,14 +306,14 @@ for(const {number} of reference.exits){
  const surface=usePortal(exitsTest,'street',{exit:number});
  const interior=usePortal(exitsTest,'station',{exit:number});
  assert.equal(exitsTest.run('player.x'),interior.tx);assert.equal(exitsTest.run('player.y'),interior.ty);
- assert.ok(Math.abs(interior.tx-surface.x)+Math.abs(interior.ty-surface.y)<=8,'Exit '+number+' returns to the same surface location');
+ assert.deepEqual([interior.tx,interior.ty],[surface.x,surface.y],'Exit '+number+' returns to the exact same surface stair tile');
 }
 for(const [surfaceLabel,returnLabel] of [['현대백화점 B2','지상 · 현대백화점 ↑'],['U-PLEX 지하통로 ↓','지상 · U-PLEX ↑']]){
  const surface=usePortal(exitsTest,'street',{label:surfaceLabel});
  assert.equal(exitsTest.run('player.x'),surface.tx);assert.equal(exitsTest.run('player.y'),surface.ty);
  const interior=usePortal(exitsTest,'mall',{label:returnLabel});
  assert.equal(exitsTest.run('player.x'),interior.tx);assert.equal(exitsTest.run('player.y'),interior.ty);
- assert.ok(Math.abs(interior.tx-surface.x)+Math.abs(interior.ty-surface.y)<=8,surfaceLabel+' returns to its own entrance');
+ assert.deepEqual([interior.tx,interior.ty],[surface.x,surface.y],surfaceLabel+' returns to its exact own entrance');
 }
 console.log('PASS eight numbered exit round-trips; Hyundai and U-PLEX each return to their own surface entrance');
 
