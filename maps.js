@@ -22,17 +22,17 @@ const campusLine=48;
 street.campusGate={x:59,y:47};
 area(street,1,1,street.w-2,campusLine-1,0);
 for(const p of CITY_GEOGRAPHY.parks)polygon(street,p.points,0);
-const roadRadius={primary:1.25,secondary:.95,tertiary:.65,residential:.25,living_street:.25,pedestrian:.3,footway:.15,path:.15};
+const roadRadius={primary:1.25,secondary:.95,tertiary:.65,residential:.25,living_street:.25,unclassified:.2,service:.14,pedestrian:.3,footway:.12,path:.12,steps:.16};
 const roadReserve=Array.from({length:street.h},()=>Array(street.w).fill(false));
 // Keep sidewalks beside the exact street lines, without erasing adjacent blocks.
 for(const r of CITY_GEOGRAPHY.roads){
  if(r.area){polygon(street,r.points,7);continue;}
- const pedestrian=['pedestrian','footway','path'].includes(r.kind);
- stroke(street,r.points,(roadRadius[r.kind]||.2)+(pedestrian?.35:.6),pedestrian?7:1);
+ const pedestrian=['pedestrian','footway','path','steps'].includes(r.kind);
+ stroke(street,r.points,(roadRadius[r.kind]||.2)+(pedestrian?.22:.45),pedestrian?7:1);
 }
 for(const r of CITY_GEOGRAPHY.roads){
  if(r.area)continue;
- const pedestrian=['pedestrian','footway','path'].includes(r.kind);
+ const pedestrian=['pedestrian','footway','path','steps'].includes(r.kind);
  stroke(street,r.points,roadRadius[r.kind]||.2,r.crossing?3:pedestrian?7:2);
 }
 // Campus avenue has its real northeast tilt; the gate joins Yonsei-ro across Seongsan-ro.
@@ -55,26 +55,20 @@ landmark(53,113,6,6,'U-PLEX','uplex','#72b0c8');
 landmark(61,132,4,3,'홍익문고','bookshop','#b05850');
 landmark(30,32,19,15,'연세공학원','campus','#a0a0b0');
 landmark(72,10,11,15,'백주년기념관','campus','#a0a0b0');
-// Fit a solid rectangle inside each remaining real footprint. This keeps alleys
-// open and avoids the old renderer's repeated one-tile building facades.
+// Keep every surveyed footprint as a separate building. The renderer clips
+// the roof and facade to its actual outline, preserving the narrow alleys.
 const roofColors=['#a89868','#8898a8','#b08070','#889878','#a88898','#a8a088'];
 const ignoredBuildings=new Set(['1436163437','1436163440','1436159554','1436159556','1436179997','1436179994','1436170974','1436170957','1436159561']);
+const heroBuildings=[{x:38,y:121,w:12,h:15},{x:53,y:113,w:6,h:6},{x:61,y:132,w:4,h:3},{x:30,y:32,w:19,h:15},{x:72,y:10,w:11,h:15}];
 for(const b of CITY_GEOGRAPHY.buildings){
  if(ignoredBuildings.has(b.id)||b.branch==='U Plex'||b.branch==='신촌점')continue;
- const {x:bx,y:by,w:bw,h:bh}=b.bbox;
+ const {x:bx,y:by,w:bw,h:bh}=b.bbox,cx=bx+bw/2,cy=by+bh/2;
+ if(heroBuildings.some(r=>cx>=r.x&&cx<r.x+r.w&&cy>=r.y&&cy<r.y+r.h))continue;
  const x0=Math.max(1,bx),y0=Math.max(1,by),x1=Math.min(street.w-1,bx+bw),y1=Math.min(street.h-1,by+bh);
- let best=null;const heights=Array(Math.max(0,x1-x0)).fill(0);
- for(let y=y0;y<y1;y++){
-  for(let x=x0;x<x1;x++)heights[x-x0]=!roadReserve[y][x]&&![2,3,7,9].includes(street.tiles[y][x])&&inPolygon(x+.5,y+.5,b.points)?heights[x-x0]+1:0;
-  for(let i=0;i<heights.length;i++){
-   let height=heights[i];
-   for(let j=i;j<heights.length&&height>=2;j++){
-    height=Math.min(height,heights[j]);const width=j-i+1;
-    if(width>=2&&height>=2&&(!best||width*height>best.w*best.h))best={x:x0+i,y:y-height+1,w:width,h:height};
-   }
-  }
- }
- if(best){const roof=roofColors[Number(b.id)%roofColors.length];addBuilding(street,best.x,best.y,best.w,best.h,'',roof,'block');}
+ if(x1<=x0||y1<=y0)continue;
+ const id=street.buildings.length;
+ street.buildings.push({x:bx,y:by,w:bw,h:bh,label:'',roof:roofColors[Number(b.id)%roofColors.length],type:'block',points:b.points,footprint:true});
+ for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)if(!roadReserve[y][x]&&![2,3,7,9].includes(street.tiles[y][x])&&inPolygon(x+.5,y+.5,b.points)){street.tiles[y][x]=9;street.buildingAt[y][x]=id;}
 }
 // Entrances occupy reserved gaps, never generic storefronts.
 for(const e of SURFACE_EXITS){const [tx,ty]=exitInside[e.number];addPortal(street,e.x,e.y,'station',tx,ty+(e.number<=4?2:-2),`신촌역 ${e.number}번 출구`,{exit:e.number});}
@@ -92,15 +86,27 @@ addNPC(street,62,109,'거리의 연주자',['여기가 명물길로 갈라지는
 addNPC(street,64,35,'책 읽는 학생',['연세대에 도착했구나. 정문에서 이어지는 이 길이 백양로야.','서쪽에 공학원, 북동쪽에는 백주년기념관과 세브란스가 있어.','여기 은행잎 하나 가져가. 오늘 산책을 기억해 줘!'],'student','은행잎');
 addNPC(street,64,136,'서점을 찾은 사람',['홍익문고는 신촌역 3번 출구 가까이 있어. 길 건너편이 현대백화점 쪽이야.'],'student');
 sealMap(street);
-const station=makeMap(42,26,4);maps.station=station;sealMap(station);
-area(station,2,10,38,2,7);
-addBuilding(station,8,7,5,3,'승차권','#7888a0','counter');addBuilding(station,29,7,5,3,'역무실','#689890','counter');
-addBuilding(station,8,16,6,3,'편의점','#889858','counter');addBuilding(station,30,16,5,3,'보관함','#9098b0','counter');
-for(const e of SURFACE_EXITS){const [x,y]=exitInside[e.number],arrival=nearestWalkable(street,e.x,e.y-2);addPortal(station,x,y,'street',arrival.x,arrival.y,`${e.number}번 출구`,{exit:e.number});}
-addPortal(station,2,11,'mall',30,14,'현대백화점 B2 ←');
-for(const x of [18,21,24,27])station.props.push({x,y:15,type:'gate',solid:true});
-addNPC(station,18,9,'역무원',['2호선 신촌역입니다. 2·3번 출구는 연세로 방향입니다.','현대백화점은 왼쪽 1번 출구 안쪽 통로로 가세요. B2층으로 연결됩니다.'],'officer');
-station.spawn={x:16,y:6};
+const station=makeMap(56,38,4);maps.station=station;sealMap(station);
+// The concourse fans north toward exits 1–4 and south toward 5–8;
+// separate direction platforms and tracks sit below the paid area.
+area(station,2,7,52,20,4);area(station,3,11,50,11,7);area(station,3,16,50,4,4);
+area(station,3,27,50,6,4);
+// Separate eastbound and westbound side platforms with paired track beds.
+area(station,3,29,50,1,9);area(station,3,30,50,1,9);
+for(const x of [5,17,34,46])area(station,x-1,29,4,2,4);
+addBuilding(station,23,8,10,3,'고객안내실','#689890','counter');
+addBuilding(station,5,9,7,3,'승차권 발매','#7888a0','counter');addBuilding(station,44,9,7,3,'화장실','#a88878','counter');
+addBuilding(station,5,22,8,3,'편의점','#889858','counter');addBuilding(station,43,22,8,3,'물품보관함','#9098b0','counter');
+for(const x of [16,21,26,31,36,41])station.props.push({x,y:16,type:'gate',solid:true});
+for(const x of [6,13,20,27,34,41,48])station.props.push({x,y:12,type:'column',solid:true},{x,y:24,type:'column',solid:true});
+station.props.push({x:25,y:27,type:'platformSign',text:'홍대입구 · 신도림 ←'},{x:25,y:32,type:'platformSign',text:'이대 · 시청 →'});
+for(const [number,x,y] of [[1,5,4],[2,17,4],[3,34,4],[4,46,4],[5,46,33],[6,34,33],[7,17,33],[8,5,33]]){
+ const exit=SURFACE_EXITS.find(e=>e.number===number),arrival=nearestWalkable(street,exit.x,exit.y-2);
+ addPortal(station,x,y,'street',arrival.x,arrival.y,`${number}번 출구`,{exit:number});
+}
+addPortal(station,2,16,'mall',18,4,'현대백화점 B2 ←');
+addNPC(station,28,14,'역무원',['2호선 신촌역 대합실입니다. 북쪽 통로는 1~4번 출구, 남쪽은 5~8번 출구예요.','개찰구를 지나 아래 승강장으로 내려가세요. 1번 출구 안쪽 연결 통로는 현대백화점 B2로 이어집니다.'],'officer');
+station.spawn={x:5,y:15};
 const mall=makeMap(34,26,4);maps.mall=mall;sealMap(mall);
 area(mall,15,2,5,21,7);addBuilding(mall,4,4,7,5,'GROUND','#9880b0','counter');addBuilding(mall,23,4,7,5,'POP-UP','#78a090','counter');addBuilding(mall,4,17,7,5,'LIFESTYLE','#8898c0','counter');
 addPortal(mall,32,14,'station',4,11,'신촌역 →');addPortal(mall,16,7,'store',16,20,'B1 식품관 ↑');addPortal(mall,18,2,'street',46,139,'지상 · 현대백화점 ↑',{sign:'현백 ↑'});addPortal(mall,26,2,'street',58,122,'지상 · U-PLEX ↑',{sign:'U-PLEX ↑'});

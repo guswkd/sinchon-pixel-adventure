@@ -4,7 +4,10 @@ function rect(x,y,w,h,c){ctx.fillStyle=c;ctx.fillRect(Math.round(x),Math.round(y
 function txt(s,x,y,c=INK,size=10){ctx.font=`${size}px Galmuri9, monospace`;ctx.fillStyle=c;ctx.textAlign='center';ctx.fillText(s,Math.round(x),Math.round(y));}
 function outline(x,y,w,h,fill,line=INK){rect(x,y,w,h,line);rect(x+1,y+1,w-2,h-2,fill);}
 function drawTile(m,t,x,y,ix,iy){
- if(t===9){rect(x,y,16,16,zone==='street'?'#f0e8c8':'#e8e0c8');return;}
+ if(t===9){
+  if(zone==='station'){rect(x,y,16,16,'#383840');for(let i=0;i<4;i++)rect(x+1+i*4,y+3,2,10,'#986848');rect(x,y+1,16,1,'#c0b8a8');rect(x,y+14,16,1,'#c0b8a8');}
+  else rect(x,y,16,16,zone==='street'?'#f0e8c8':'#e8e0c8');return;
+ }
  if(t===0){rect(x,y,16,16,'#b8d888');rect(x+3,y+4,1,2,'#80b068');rect(x+5,y+5,1,2,'#80b068');if((ix+iy)%3===0){rect(x+11,y+11,2,1,'#78a860');rect(x+12,y+9,1,2,'#78a860');}return;}
  if(t===1||t===7){rect(x,y,16,16,t===7?'#e8d8b0':'#f0e8d0');if(t===7){rect(x,y+15,16,1,'#c8b898');rect(x+8*(iy%2),y,1,16,'#c8b898');}else{rect(x+2,y+3,3,1,'#c8c0a8');rect(x+8,y+11,4,1,'#c8c0a8');rect(x+4,y+12,1,1,'#d8d0b8');}return;}
  if(t===2||t===3){rect(x,y,16,16,'#b0b0c0');if(t===3){rect(x+2,y,4,16,'#fff8e0');rect(x+10,y,4,16,'#fff8e0');}else{rect(x+3,y+6,1,1,'#9898a8');rect(x+11,y+13,1,1,'#9898a8');if(ix%7===0&&iy%9===0){outline(x+4,y+4,8,8,'#888898');for(let k=0;k<3;k++)rect(x+5,y+5+k*2,6,1,'#585868');}}return;}
@@ -15,8 +18,29 @@ function drawTile(m,t,x,y,ix,iy){
 function pane(x,y,w,h){outline(x,y,w,h,'#5888b0');rect(x+2,y+2,w-4,h-4,'#a0d0e0');rect(x+2,y+2,Math.max(1,Math.floor(w/3)),h-4,'#d8f0e8');rect(x+Math.floor(w/2),y+1,1,h-2,'#486880');rect(x+1,y+Math.floor(h/2),w-2,1,'#486880');}
 function door(x,y,w=16,h=20){outline(x,y,w,h,'#385070');rect(x+2,y+2,w-4,h-3,'#88b8c8');rect(x+2,y+2,3,h-3,'#d8e8d8');rect(x+w/2,y+1,1,h-2,INK);rect(x+w/2-3,y+h/2,2,2,'#f8d878');}
 function sign(s,x,y,w,fill='#f8f0d0',ink=INK){outline(x,y,w,14,fill);txt(s,x+w/2,y+11,ink,10);}
+function footprintPath(points,cx,cy,offsetX=0,offsetY=0){
+ ctx.beginPath();points.forEach(([px,py],i)=>{const x=px*T-cx+offsetX,y=py*T-cy+offsetY;i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.closePath();
+}
 function drawBuilding(b,cx,cy){
  const x=b.x*T-cx,y=b.y*T-cy,w=b.w*T,h=b.h*T;
+ if(b.footprint){
+  ctx.save();footprintPath(b.points,cx,cy,4,5);ctx.fillStyle='#786878';ctx.fill();ctx.restore();
+  ctx.save();footprintPath(b.points,cx,cy);ctx.clip();
+  rect(x,y,w,h,b.roof);rect(x+2,y+2,w-4,Math.min(4,h),b.roof==='#8898a8'?'#d0d0c0':'#d8c8a0');
+  if(w>=38&&h>=38){
+   const top=Math.max(7,Math.floor(h*.56));rect(x,y+top,w,h-top,'#786c68');rect(x,y+top,w,2,INK);
+   for(let yy=top+5;yy<h-6;yy+=10)for(let xx=4;xx<w-5;xx+=11){rect(x+xx,y+yy,6,5,'#d0e0d8');rect(x+xx,y+yy,1,5,'#fff0d0');}
+   for(let xx=2;xx<w-2;xx+=Math.max(8,Math.floor(w/6)))rect(x+xx,y+h-7,5,4,'#f0d888');
+  }else if(w>=20&&h>=20){
+   for(let xx=4;xx<w-4;xx+=8)rect(x+xx,y+Math.floor(h*.44),5,Math.max(3,Math.floor(h*.32)),['#d8e8d8','#a8c8d0','#f0d890'][Math.floor(xx/8)%3]);
+   rect(x+2,y+h-3,w-4,2,INK);
+  }else{
+   rect(x+2,y+Math.floor(h*.38),Math.max(2,w-4),2,'#f0e0b0');
+   if(w>10&&h>10)rect(x+Math.floor(w*.72),y+3,Math.max(2,Math.floor(w*.16)),Math.max(2,Math.floor(h*.16)),'#a8a098');
+  }
+  ctx.restore();ctx.save();footprintPath(b.points,cx,cy);ctx.strokeStyle='#504850';ctx.lineWidth=1;ctx.stroke();ctx.restore();
+  return;
+ }
  rect(x+4,y+5,w,h,'#786878');outline(x,y,w,h,'#e8d8b0');
  if(b.type==='block'){
   const roofH=Math.max(12,Math.floor(h*.55));
@@ -90,6 +114,8 @@ function drawProp(p,x,y){
  if(p.type==='eagle'){outline(x+3,y+2,12,14,'#a8a0a0');rect(x-3,y-5,24,3,'#586858');rect(x,y-8,18,3,'#788870');rect(x+6,y-10,6,15,'#485848');rect(x+10,y-12,5,4,'#788870');}
  if(p.type==='bench'){outline(x-2,y,22,6,'#c09050');outline(x-2,y+8,22,4,'#c09050');rect(x+1,y+12,3,4,INK);rect(x+15,y+12,3,4,INK);}
  if(p.type==='gate'){outline(x,y-1,12,17,'#98b0a8');rect(x+2,y+1,8,4,'#385868');rect(x+4,y+2,4,2,'#b8e078');rect(x+11,y+7,5,2,'#d87048');}
+ if(p.type==='column'){outline(x+3,y+1,10,14,'#8b9290');rect(x+5,y+3,6,10,'#c8ccc0');rect(x+2,y,12,3,'#e8e0c8');rect(x+2,y+14,12,2,'#687078');}
+ if(p.type==='platformSign'){rect(x+7,y+4,2,13,INK);outline(x-38,y-9,92,15,'#e8e0c8');txt(p.text,x+8,y+2,INK,8);}
  if(p.type==='table'){outline(x-2,y,20,11,'#f8e0b0');rect(x+1,y+11,3,5,INK);rect(x+13,y+11,3,5,INK);rect(x+5,y+2,6,4,'#789850');}
  if(p.type==='bus'){outline(x,y-9,44,22,'#5078b0');rect(x+2,y-7,40,8,'#c0e0e8');for(let i=10;i<38;i+=9)rect(x+i,y-7,2,8,'#385078');rect(x+3,y+6,37,2,'#f8f0c8');rect(x+6,y+12,7,5,INK);rect(x+31,y+12,7,5,INK);}
  if(p.type==='sign'){rect(x+7,y+5,2,12,INK);sign(p.text,x-16,y-9,48,'#e8d078');}
@@ -111,7 +137,8 @@ function draw(){
  ctx.clearRect(0,0,W,H);
  for(let y=Math.floor(cy/T);y<Math.min(m.h,Math.ceil((cy+H)/T));y++)for(let x=Math.floor(cx/T);x<Math.min(m.w,Math.ceil((cx+W)/T));x++)drawTile(m,m.tiles[y][x],x*T-cx,y*T-cy,x,y);
  if(zone==='street')for(const r of m.roads){ctx.strokeStyle='#f8e8a8';ctx.lineWidth=1;ctx.setLineDash([7,9]);ctx.beginPath();r.points.forEach(([x,y],i)=>i?ctx.lineTo(x*T-cx,y*T-cy):ctx.moveTo(x*T-cx,y*T-cy));ctx.stroke();ctx.setLineDash([]);}
- for(const b of m.buildings)if(b.x*T<cx+W&&(b.x+b.w)*T>cx&&b.y*T<cy+H&&(b.y+b.h)*T>cy)drawBuilding(b,cx,cy);
+ const orderedBuildings=m.orderedBuildings||(m.orderedBuildings=[...m.buildings].sort((a,b)=>(a.y+a.h)-(b.y+b.h)));
+ for(const b of orderedBuildings)if(b.x*T<cx+W&&(b.x+b.w)*T>cx&&b.y*T<cy+H&&(b.y+b.h)*T>cy)drawBuilding(b,cx,cy);
  const objects=[...m.trees.map(o=>({...o,type:'tree'})),...m.props,...m.npcs.map(o=>({...o,type:'npc'})),{...v,type:'hero'}].filter(o=>o.x*T>cx-50&&o.x*T<cx+W+50&&o.y*T>cy-50&&o.y*T<cy+H+50).sort((a,b)=>a.y-b.y);
  for(const o of objects){const x=o.x*T-cx,y=o.y*T-cy;if(o.type==='tree')drawTree(x,y);else if(o.type==='hero'||o.type==='npc'){const step=o.type==='hero'&&animation?(player.step%2?1:2):0;paintSprite(ctx,x,y-1,o.type==='hero'?'hero':o.style,o.type==='hero'?player.dir:o.dir,step);}else drawProp(o,x,y);}
  for(const p of m.portals)if(p.x*T>cx-40&&p.x*T<cx+W+40&&p.y*T>cy-30&&p.y*T<cy+H+30)drawPortal(p,cx,cy);

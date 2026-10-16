@@ -18,7 +18,7 @@ OFFSET = (14, 2)
 WIDTH, HEIGHT = 124, 178
 ROAD_KINDS = {
     "primary", "secondary", "tertiary", "residential", "living_street",
-    "pedestrian",
+    "unclassified", "service", "pedestrian", "footway", "path", "steps",
 }
 
 
