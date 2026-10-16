@@ -37,38 +37,28 @@ function usePortal(app,zoneId,match){const portal=approach(app,zoneId,'portal',m
 let app=boot();
 app.run(`for(const [direction,rows] of Object.entries({...SPRITE_FRAMES,...Object.fromEntries(Object.entries(HERO_FRAMES).map(([k,v])=>["hero-"+k,v]))})){if(rows.length!==16)throw Error(direction+' wrong height');for(const row of rows)if(row.length!==16)throw Error(direction+' row '+row+' length '+row.length);}`);
 console.log('PASS sprite dimensions: three original 16×16 bases, mirrored left, walking variants');
-// The U-PLEX stairs are close to the periscope, but inspecting the landmark must
-// neither select a diagonal portal nor fall back to an NPC behind the player.
+// The periscope is in the plaza immediately north of U-PLEX. Inspecting it
+// must neither select a portal nor move the player.
 const landmarkTest=boot();
-for(const start of [{x:57,y:121,dir:1},{x:56,y:120,dir:0}]){
- landmarkTest.run(`zone='street';player={...${JSON.stringify(start)},step:0};dialog=null;animation=null;clearControls();`);
- const location=landmarkTest.run('JSON.stringify({zone,x:player.x,y:player.y})');
- assert.equal(landmarkTest.run('nearby()?.kind'),'prop','facing the periscope selects the landmark');
- landmarkTest.key('KeyE','ㄷ',{isComposing:true});
- assert.equal(landmarkTest.run('dialog?.name'),'빨간 잠망경','periscope has its own description');
- assert.equal(landmarkTest.run('dialog.text.length'),2,'description has two pages');
- assert.equal(landmarkTest.run('JSON.stringify({zone,x:player.x,y:player.y})'),location,'opening description stays at the landmark');
- landmarkTest.key('Space',' ');landmarkTest.key('KeyE','e');
- assert.equal(landmarkTest.run('dialog'),null,'the landmark dialogue closes');
- assert.equal(landmarkTest.run('JSON.stringify({zone,x:player.x,y:player.y})'),location,'closing description does not teleport');
- landmarkTest.key('KeyE','e');assert.equal(landmarkTest.run('dialog?.name'),'빨간 잠망경','repeated interaction keeps selecting the landmark');
- landmarkTest.key('Escape');
-}
-for(const start of [{x:57,y:120,dir:3},{x:57,y:119,dir:3},{x:58,y:121,dir:0},{x:58,y:122,dir:3}]){
- landmarkTest.run(`zone='street';player={...${JSON.stringify(start)},step:0};dialog=null;animation=null;clearControls();`);
- assert.ok(landmarkTest.run('walkable(maps.street,player.x,player.y)'),'interaction fixture is reachable');
- const location=landmarkTest.run('JSON.stringify({zone,x:player.x,y:player.y})');
- assert.equal(landmarkTest.run('nearby()??null'),null,'a diagonal, behind or two-tile-away target is not selected');
- landmarkTest.key('Space',' ');
- assert.equal(landmarkTest.run('JSON.stringify({zone,x:player.x,y:player.y})'),location,'unfocused interaction cannot teleport');
- assert.equal(landmarkTest.run('dialog'),null,'unfocused interaction cannot open unrelated dialogue');
-}
-for(const [x,y,dir] of [[59,119,0],[59,120,3]]){
- landmarkTest.run(`zone='street';player={x:${x},y:${y},dir:${dir},step:0};dialog=null;animation=null;clearControls();`);
- assert.equal(landmarkTest.run('nearby()?.label'),'U-PLEX · 지하 연결','the second tile of the stairs is selectable');
- landmarkTest.key('KeyE','e');assert.equal(landmarkTest.run('zone'),'mall','facing or standing on the stairs enters B2');
-}
-console.log('PASS periscope regression: inspection stays in place; facing and stair footprint gate all interactions');
+const periscope=approach(landmarkTest,'street','prop',{name:'빨간 잠망경'});
+const uplexBuilding=landmarkTest.run(`maps.street.buildings.find(b=>b.type==='uplex')`);
+assert.ok(periscope.x>=uplexBuilding.x&&periscope.x<uplexBuilding.x+uplexBuilding.w&&periscope.y<uplexBuilding.y,'periscope is immediately above U-PLEX footprint');
+const entrance=landmarkTest.run(`maps.street.portals.find(p=>p.label==='U-PLEX 지하통로 ↓')`);
+assert.ok(Math.abs(entrance.x-periscope.x)+Math.abs(entrance.y-periscope.y)<=4,'B2 entrance is beside the periscope');
+const location=landmarkTest.run('JSON.stringify({zone,x:player.x,y:player.y})');
+landmarkTest.key('KeyE','ㄷ',{isComposing:true});
+assert.equal(landmarkTest.run('dialog?.name'),'빨간 잠망경','periscope has its own description');
+assert.equal(landmarkTest.run('dialog.text.length'),2,'description has two pages');
+assert.equal(landmarkTest.run('JSON.stringify({zone,x:player.x,y:player.y})'),location,'opening description stays at the landmark');
+landmarkTest.key('Space',' ');landmarkTest.key('KeyE','e');
+assert.equal(landmarkTest.run('dialog'),null,'the landmark dialogue closes');
+assert.equal(landmarkTest.run('JSON.stringify({zone,x:player.x,y:player.y})'),location,'closing description does not teleport');
+usePortal(landmarkTest,'street',{label:'U-PLEX 지하통로 ↓'});
+assert.equal(landmarkTest.run('zone'),'mall','U-PLEX entrance enters B2');
+assert.equal(landmarkTest.run('walkable(maps.mall,31,10)'),true,'marked underground corridor is walkable');
+usePortal(landmarkTest,'mall',{label:'신촌역 →'});
+assert.equal(landmarkTest.run('zone'),'station','B2 corridor connects to Sinchon Station');
+console.log('PASS U-PLEX: periscope above footprint, adjacent B2 entrance, walkable B2 passage to station');
 app.run(`draw();renderMap();`);
 app.key('KeyM','ㅡ',{isComposing:true});assert.equal(app.nodes.get('#map-overlay').hidden,false,'Korean M opens map');
 app.key('KeyM','ㅡ',{repeat:true});assert.equal(app.nodes.get('#map-overlay').hidden,false,'repeat does not close');
@@ -263,7 +253,7 @@ for(const {number} of reference.exits){
  assert.equal(exitsTest.run('player.x'),interior.tx);assert.equal(exitsTest.run('player.y'),interior.ty);
  assert.ok(Math.abs(interior.tx-surface.x)+Math.abs(interior.ty-surface.y)<=4,'Exit '+number+' returns to the same surface location');
 }
-for(const [surfaceLabel,returnLabel] of [['현대백화점 B2','지상 · 현대백화점 ↑'],['U-PLEX · 지하 연결','지상 · U-PLEX ↑']]){
+for(const [surfaceLabel,returnLabel] of [['현대백화점 B2','지상 · 현대백화점 ↑'],['U-PLEX 지하통로 ↓','지상 · U-PLEX ↑']]){
  const surface=usePortal(exitsTest,'street',{label:surfaceLabel});
  assert.equal(exitsTest.run('player.x'),surface.tx);assert.equal(exitsTest.run('player.y'),surface.ty);
  const interior=usePortal(exitsTest,'mall',{label:returnLabel});

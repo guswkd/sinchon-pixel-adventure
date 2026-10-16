@@ -46,7 +46,7 @@ for(let y=1;y<street.h-1;y++)for(let x=1;x<street.w-1;x++)if([2,3,7].includes(st
 }
 const SURFACE_EXITS=CITY_GEOGRAPHY.exits;
 const exitInside={1:[5,4],2:[16,4],3:[24,4],4:[34,4],5:[36,21],6:[27,22],7:[16,22],8:[5,21]};
-const storefronts=[{x:46,y:137,tx:18,ty:4,label:'현대백화점 B2'},{x:58,y:120,tx:26,ty:3,label:'U-PLEX · 지하 연결'}];
+const storefronts=[{x:46,y:137,tx:18,ty:4,label:'현대백화점 B2'},{x:56,y:110,tx:26,ty:3,label:'U-PLEX 지하통로 ↓'}];
 for(const e of [...SURFACE_EXITS,...storefronts])for(let y=e.y-3;y<=e.y+2;y++)for(let x=e.x-2;x<=e.x+3;x++)if(roadReserve[y]?.[x]!==undefined)roadReserve[y][x]=true;
 // Keep every surveyed footprint separate and render landmarks on their actual OSM outlines.
 const roofColors=['#aaa18e'];
@@ -67,7 +67,7 @@ for(const e of SURFACE_EXITS){const [tx,ty]=exitInside[e.number];addPortal(stree
 for(const e of storefronts)addPortal(street,e.x,e.y,'mall',e.tx,e.ty,e.label);
 // Trees follow park parcels and campus greens, not evenly spaced artificial rows.
 for(let y=3;y<street.h-3;y+=3)for(let x=3;x<street.w-3;x+=3)if(street.tiles[y][x]===0&&!roadReserve[y][x]&&street.tiles[y-1][x]===0&&(x*7+y*11)%5<2)street.trees.push({x,y});
-street.props.push({x:56,y:121,type:'periscope',solid:true,name:'빨간 잠망경',text:['U-PLEX 앞의 빨간 잠망경이다. 이 앞에서 만나기로 한 사람들이 주변을 둘러보고 있다.','지하로 내려가려면 오른쪽의 B2 계단 앞에서 입구를 바라보자.']},{x:56,y:47,type:'gatepost',solid:true},{x:62,y:47,type:'gatepost',solid:true},{x:63,y:41,type:'eagle',solid:true},{x:38,y:114,type:'bench',solid:true},{x:44,y:115,type:'bench',solid:true});
+street.props.push({x:55,y:108,type:'periscope',solid:true,name:'빨간 잠망경',text:['U-PLEX 앞 광장의 빨간 잠망경이다.','바로 옆 지하통로 입구로 내려가면 백화점 B2와 신촌역으로 이어진다.']},{x:56,y:47,type:'gatepost',solid:true},{x:62,y:47,type:'gatepost',solid:true},{x:63,y:41,type:'eagle',solid:true},{x:38,y:114,type:'bench',solid:true},{x:44,y:115,type:'bench',solid:true});
 for(const [x,y] of [[58,127],[62,123],[58,103],[62,91],[58,75],[62,61]])if(walkable(street,x,y))street.props.push({x,y,type:'lamp'});
 street.props.push({x:64,y:105,type:'sign',text:'명물길 ↗'},{x:55,y:100,type:'sign',text:'연세로 ↑'});
 street.labels=[{name:'연세대학교',x:59,y:47,kind:'campus'},{name:'백양로',x:65,y:20,kind:'road'},{name:'성산로',x:89,y:54,kind:'road'},{name:'연세로',x:60,y:81,kind:'road'},{name:'명물길',x:81,y:88,kind:'road'},{name:'신촌로',x:90,y:136,kind:'road'},{name:'서강로',x:43,y:162,kind:'road'},{name:'창천문화공원',x:39,y:115,kind:'park'},{name:'현대백화점',x:44,y:128,kind:'store'},{name:'U-PLEX',x:56,y:116,kind:'shop'},{name:'홍익문고',x:63,y:134,kind:'book'},{name:'신촌역',x:60,y:144,kind:'station'}];
@@ -100,9 +100,14 @@ addPortal(station,2,16,'mall',18,4,'현대백화점 B2 ←');
 addNPC(station,28,14,'역무원',['2호선 신촌역 대합실입니다. 북쪽 통로는 1~4번 출구, 남쪽은 5~8번 출구예요.','개찰구를 지나 아래 승강장으로 내려가세요. 1번 출구 안쪽 연결 통로는 현대백화점 B2로 이어집니다.'],'officer');
 station.spawn={x:5,y:15};
 const mall=makeMap(34,26,4);maps.mall=mall;sealMap(mall);
-area(mall,15,2,5,21,7);addBuilding(mall,4,4,7,5,'GROUND','#9880b0','counter');addBuilding(mall,23,4,7,5,'POP-UP','#78a090','counter');addBuilding(mall,4,17,7,5,'LIFESTYLE','#8898c0','counter');
-addPortal(mall,32,14,'station',4,11,'신촌역 →');addPortal(mall,16,7,'store',16,20,'B1 식품관 ↑');addPortal(mall,18,2,'street',46,139,'지상 · 현대백화점 ↑',{sign:'현백 ↑'});addPortal(mall,26,2,'street',58,122,'지상 · U-PLEX ↑',{sign:'U-PLEX ↑'});
-addNPC(mall,19,12,'백화점 안내 직원',['여기는 신촌역과 연결된 B2층이야.','식품관은 위쪽 에스컬레이터로 올라가면 돼. 역으로 돌아가려면 오른쪽으로 가!'],'clerk');mall.spawn={x:30,y:14};
+area(mall,15,2,5,21,7);
+// The U-PLEX entrance opens onto a marked B2 corridor that bends south
+// along the east edge of the shops, then west to the station connection.
+area(mall,25,2,8,3,7);area(mall,30,4,3,11,7);area(mall,20,13,13,4,7);
+addBuilding(mall,4,4,7,5,'GROUND','#9880b0','counter');addBuilding(mall,23,4,7,5,'POP-UP','#78a090','counter');addBuilding(mall,4,17,7,5,'LIFESTYLE','#8898c0','counter');
+addPortal(mall,32,14,'station',4,11,'신촌역 →');addPortal(mall,16,7,'store',16,20,'B1 식품관 ↑');addPortal(mall,18,2,'street',46,139,'지상 · 현대백화점 ↑',{sign:'현백 ↑'});addPortal(mall,26,2,'street',56,111,'지상 · U-PLEX ↑',{sign:'U-PLEX ↑'});
+mall.props.push({x:30,y:5,type:'sign',text:'U-PLEX · B2 연결통로 ↓'},{x:29,y:15,type:'sign',text:'신촌역 →'});
+addNPC(mall,19,12,'백화점 안내 직원',['여기는 신촌역과 연결된 B2층이야.','U-PLEX 출구에서 오른쪽 복도를 따라 내려가면 신촌역이야.','식품관은 위쪽 에스컬레이터로 올라가면 돼.'],'clerk');mall.spawn={x:30,y:14};
 const store=makeMap(34,26,5);maps.store=store;sealMap(store);
 addBuilding(store,3,4,8,4,'베이커리','#d8a048','stall');addBuilding(store,14,4,7,4,'현대식품관','#90a050','stall');addBuilding(store,24,4,7,4,'디저트','#c888a0','stall');
 addBuilding(store,3,16,8,6,'청과 · 야채','#789c50','produce');addBuilding(store,24,16,7,6,'푸드코트','#b09060','stall');
