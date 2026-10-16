@@ -24,37 +24,55 @@ function footprintPath(points,cx,cy,offsetX=0,offsetY=0){
 function drawBuilding(b,buildingId,m,cx,cy){
  const x=b.x*T-cx,y=b.y*T-cy,w=b.w*T,h=b.h*T;
  if(b.footprint){
-  // Keep the surveyed OSM outline, but use a quiet overhead roof palette so
-  // dense street blocks read as blocks instead of a jumble of tiny facades.
-  ctx.save();footprintPath(b.points,cx,cy);ctx.clip();
-  ctx.beginPath();
+  // Preserve the surveyed footprint while letting adjacent small buildings
+  // read as calm roof blocks instead of hundreds of outlined roof fragments.
   const minX=Math.max(0,Math.floor(cx/T)),maxX=Math.min(m.w-1,Math.ceil((cx+canvas.width)/T));
   const minY=Math.max(0,Math.floor(cy/T)),maxY=Math.min(m.h-1,Math.ceil((cy+canvas.height)/T));
+  ctx.save();footprintPath(b.points,cx,cy);ctx.clip();ctx.beginPath();
   for(let ty=minY;ty<=maxY;ty++)for(let tx=minX;tx<=maxX;tx++)if(m.buildingAt[ty][tx]===buildingId)ctx.rect(tx*T-cx,ty*T-cy,T,T);
   ctx.clip();
-  const fill=b.type==='block'?'#aaa18e':b.roof;
+  const roofPalette=['#c8c1b1','#c2bcac','#d0c8b6','#bdb7a8'];
+  const idNumber=Number(b.id)||buildingId,roof=roofPalette[Math.abs(idNumber)%roofPalette.length];
+  const fill=b.type==='block'?roof:b.type==='hyundai'?'#d6d1c4':b.type==='uplex'?'#7895a0':b.type==='bookshop'?'#a96d5f':b.type==='campus'?'#aaa494':b.roof;
   rect(x,y,w,h,fill);
   if(b.type==='hyundai'){
-   rect(x+2,y+2,w-4,h-4,'#d1cbbb');
-   for(let yy=10;yy<h-8;yy+=18)rect(x+3,y+yy,w-6,1,'#b2ad9e');
-   if(w>72&&h>96)sign('현대백화점',x+4,y+h-25,Math.min(w-8,86),'#eee8d8','#5b6670');
+   rect(x+3,y+3,w-6,h-6,'#e3decf');
+   rect(x+8,y+8,w-16,Math.max(10,Math.min(22,h*.1)),'#b8b5aa');
+   for(let yy=38;yy<h-12;yy+=26)rect(x+4,y+yy,w-8,2,'#c4bdac');
+   if(w>66&&h>92)sign('현대',x+7,y+h-24,Math.min(w-14,54),'#eee9da','#59646a');
   }else if(b.type==='uplex'){
-   rect(x+2,y+2,w-4,h-4,'#80a9b8');
-   if(w>54&&h>58){outline(x+5,y+7,w-10,Math.min(28,h-16),'#52758a');sign('U-PLEX',x+5,y+h-20,w-10,'#385568','#fff8dc');}
-  }else if(b.type==='bookshop') {
-   rect(x+1,y+1,w-2,h-2,'#b87868');
-   if(w>56&&h>48)sign('홍익문고',x+2,y+h-18,w-4,'#a84840','#fff8d8');
-  }else if(b.type==='campus'&&w>90&&h>90){
-   rect(x+3,y+3,w-6,2,'#d8d2c2');
-   for(let xx=12;xx<w-10;xx+=24)rect(x+xx,y+8,1,h-16,'#a7a091');
-   if(b.label)sign(b.label,x+5,y+h-20,Math.min(w-10,104),'#e4dfd2','#5c5d5b');
-  }else if(w>42&&h>42){
-   rect(x+3,y+3,w-6,2,'#bcb3a0');
-   rect(x+3,y+h-5,w-6,1,'#968d7d');
+   rect(x+3,y+3,w-6,h-6,'#8eabb3');
+   for(let xx=11;xx<w-6;xx+=13)rect(x+xx,y+7,2,h-14,'#668b99');
+   for(let yy=12;yy<h-8;yy+=17)rect(x+5,y+yy,w-10,2,'#a9c1c0');
+   if(w>55&&h>58){outline(x+8,y+10,w-16,Math.min(26,h-20),'#4e707d');rect(x+11,y+13,w-22,Math.min(20,h-26),'#c2d7d0');rect(x+13,y+15,Math.max(2,w-38),Math.min(15,h-30),'#f4c76e');sign('U-PLEX',x+6,y+h-20,w-12,'#344f62','#fff8dc');}
+  }else if(b.type==='bookshop'){
+   rect(x+3,y+3,w-6,h-6,'#bb8270');
+   for(let yy=10;yy<h-13;yy+=13){rect(x+5,y+yy,w-10,2,'#854e49');for(let xx=8;xx<w-8;xx+=11)rect(x+xx,y+yy+3,7,6,['#d6a45e','#eee0b8','#728b68'][Math.floor(xx/11)%3]);}
+   if(w>50&&h>48)sign('홍익문고',x+4,y+h-18,w-8,'#934c43','#fff8d8');
+  }else if(b.type==='campus'){
+   rect(x+3,y+3,w-6,h-6,'#bdb7a8');
+   if(w>64&&h>58){rect(x+10,y+10,w-20,Math.max(8,Math.min(18,h*.12)),'#958e80');for(let xx=14;xx<w-12;xx+=24)rect(x+xx,y+10,2,Math.min(h-24,38),'#d0cab9');}
+   if(b.label&&w>74&&h>76)sign(b.label,x+5,y+h-20,Math.min(w-10,104),'#e6e0d2','#5c5d5b');
+  }else if(w>52&&h>48){
+   // Low contrast rooftop access and vents add scale without busy window grids.
+   rect(x+6,y+7,Math.min(24,w-12),3,'#b0a999');
+   if(w>90&&h>80){outline(x+w-29,y+8,17,12,'#c6c0b0','#b1aa99');rect(x+w-26,y+11,11,2,'#a9a394');}
   }
-  ctx.restore();ctx.save();footprintPath(b.points,cx,cy);ctx.clip();ctx.beginPath();
-  for(let ty=minY;ty<=maxY;ty++)for(let tx=minX;tx<=maxX;tx++)if(m.buildingAt[ty][tx]===buildingId)ctx.rect(tx*T-cx,ty*T-cy,T,T);
-  ctx.clip();ctx.strokeStyle=b.type==='block'?'#827b6c':'#625e55';ctx.lineWidth=1;ctx.stroke();ctx.restore();
+  ctx.restore();
+  // Only outer block edges are drawn; shared walls inside a dense city block
+  // disappear, while the special landmarks retain a clear silhouette.
+  ctx.save();footprintPath(b.points,cx,cy);ctx.clip();ctx.beginPath();
+  for(let ty=minY;ty<=maxY;ty++)for(let tx=minX;tx<=maxX;tx++)if(m.buildingAt[ty][tx]===buildingId){
+   const neighbor=(nx,ny)=>{const id=m.buildingAt[ny]?.[nx]??-1;return id<0?null:m.buildings[id]?.type;};
+   const x0=tx*T-cx,y0=ty*T-cy;
+   for(const [dx,dy,sx,sy,ex,ey] of [[0,-1,x0,y0,x0+T,y0],[1,0,x0+T,y0,x0+T,y0+T],[0,1,x0,y0+T,x0+T,y0+T],[-1,0,x0,y0,x0,y0+T]]){
+    const adjacent=neighbor(tx+dx,ty+dy);
+    if(adjacent==='block'&&b.type==='block')continue;
+    if(adjacent===b.type)continue;
+    ctx.moveTo(sx,sy);ctx.lineTo(ex,ey);
+   }
+  }
+  ctx.strokeStyle=b.type==='block'?'#a29b8c':b.type==='uplex'?'#486878':b.type==='hyundai'?'#928b7c':'#625e55';ctx.lineWidth=1;ctx.stroke();ctx.restore();
   return;
  }
  rect(x+4,y+5,w,h,'#786878');outline(x,y,w,h,'#e8d8b0');
