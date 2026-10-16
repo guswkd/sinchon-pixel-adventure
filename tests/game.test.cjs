@@ -211,10 +211,13 @@ const main=buildings.find(b=>b.type==='hyundai'),uplex=buildings.find(b=>b.type=
 assert.ok(main.x+main.w/2<uplex.x+uplex.w/2&&main.y>uplex.y,'Hyundai is southwest of U-PLEX');
 assert.ok(book.x>uplex.x+uplex.w&&book.y>uplex.y,'Hongik is east of Yonsei-ro, southeast of U-PLEX');
 assert.ok(main.h>main.w,'Hyundai retains its long north-south footprint');
-for(const [building,branch] of [[main,'신촌점'],[uplex,'U Plex']]){
- const points=reference.buildings.filter(b=>b.branch===branch).flatMap(b=>b.points);
- const minX=Math.min(...points.map(p=>p[0]))-14,minY=Math.min(...points.map(p=>p[1]))-2,maxX=Math.max(...points.map(p=>p[0]))-14,maxY=Math.max(...points.map(p=>p[1]))-2;
- assert.ok(Math.abs(building.x-minX)<=1&&Math.abs(building.y-minY)<=1&&Math.abs(building.x+building.w-maxX)<=1&&Math.abs(building.y+building.h-maxY)<=1,branch+' footprint preserves reference extent');
+for(const [type,branch] of [['hyundai','신촌점'],['uplex','U Plex']]){
+ const expected=reference.buildings.filter(b=>b.branch===branch),actual=buildings.filter(b=>b.type===type);
+ assert.equal(actual.length,expected.length,branch+' keeps every mapped footprint');
+ for(const source of expected){
+  const points=source.points.map(([x,y])=>[x-14,y-2]);
+  assert.ok(actual.some(building=>building.points.length===points.length&&building.points.every((point,index)=>Math.abs(point[0]-points[index][0])<.011&&Math.abs(point[1]-points[index][1])<.011)),branch+' preserves each original outline');
+ }
 }
 const myeongmul=geographic.roads.find(r=>r.id==='383258757'),rawMyeongmul=reference.roads.find(r=>r.id===myeongmul.id);
 for(const i of [0,-1]){const point=myeongmul.points.at(i),rawPoint=rawMyeongmul.points.at(i);assert.ok(Math.abs(point[0]-(rawPoint[0]-14))<.02&&Math.abs(point[1]-(rawPoint[1]-2))<.02,'Myeongmul junction endpoints retain coordinates');}

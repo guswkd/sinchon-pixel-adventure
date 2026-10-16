@@ -21,24 +21,40 @@ function sign(s,x,y,w,fill='#f8f0d0',ink=INK){outline(x,y,w,14,fill);txt(s,x+w/2
 function footprintPath(points,cx,cy,offsetX=0,offsetY=0){
  ctx.beginPath();points.forEach(([px,py],i)=>{const x=px*T-cx+offsetX,y=py*T-cy+offsetY;i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.closePath();
 }
-function drawBuilding(b,cx,cy){
+function drawBuilding(b,buildingId,m,cx,cy){
  const x=b.x*T-cx,y=b.y*T-cy,w=b.w*T,h=b.h*T;
  if(b.footprint){
-  ctx.save();footprintPath(b.points,cx,cy,4,5);ctx.fillStyle='#786878';ctx.fill();ctx.restore();
+  // Keep the surveyed OSM outline, but use a quiet overhead roof palette so
+  // dense street blocks read as blocks instead of a jumble of tiny facades.
   ctx.save();footprintPath(b.points,cx,cy);ctx.clip();
-  rect(x,y,w,h,b.roof);rect(x+2,y+2,w-4,Math.min(4,h),b.roof==='#8898a8'?'#d0d0c0':'#d8c8a0');
-  if(w>=38&&h>=38){
-   const top=Math.max(7,Math.floor(h*.56));rect(x,y+top,w,h-top,'#786c68');rect(x,y+top,w,2,INK);
-   for(let yy=top+5;yy<h-6;yy+=10)for(let xx=4;xx<w-5;xx+=11){rect(x+xx,y+yy,6,5,'#d0e0d8');rect(x+xx,y+yy,1,5,'#fff0d0');}
-   for(let xx=2;xx<w-2;xx+=Math.max(8,Math.floor(w/6)))rect(x+xx,y+h-7,5,4,'#f0d888');
-  }else if(w>=20&&h>=20){
-   for(let xx=4;xx<w-4;xx+=8)rect(x+xx,y+Math.floor(h*.44),5,Math.max(3,Math.floor(h*.32)),['#d8e8d8','#a8c8d0','#f0d890'][Math.floor(xx/8)%3]);
-   rect(x+2,y+h-3,w-4,2,INK);
-  }else{
-   rect(x+2,y+Math.floor(h*.38),Math.max(2,w-4),2,'#f0e0b0');
-   if(w>10&&h>10)rect(x+Math.floor(w*.72),y+3,Math.max(2,Math.floor(w*.16)),Math.max(2,Math.floor(h*.16)),'#a8a098');
+  ctx.beginPath();
+  const minX=Math.max(0,Math.floor(cx/T)),maxX=Math.min(m.w-1,Math.ceil((cx+canvas.width)/T));
+  const minY=Math.max(0,Math.floor(cy/T)),maxY=Math.min(m.h-1,Math.ceil((cy+canvas.height)/T));
+  for(let ty=minY;ty<=maxY;ty++)for(let tx=minX;tx<=maxX;tx++)if(m.buildingAt[ty][tx]===buildingId)ctx.rect(tx*T-cx,ty*T-cy,T,T);
+  ctx.clip();
+  const fill=b.type==='block'?'#aaa18e':b.roof;
+  rect(x,y,w,h,fill);
+  if(b.type==='hyundai'){
+   rect(x+2,y+2,w-4,h-4,'#d1cbbb');
+   for(let yy=10;yy<h-8;yy+=18)rect(x+3,y+yy,w-6,1,'#b2ad9e');
+   if(w>72&&h>96)sign('현대백화점',x+4,y+h-25,Math.min(w-8,86),'#eee8d8','#5b6670');
+  }else if(b.type==='uplex'){
+   rect(x+2,y+2,w-4,h-4,'#80a9b8');
+   if(w>54&&h>58){outline(x+5,y+7,w-10,Math.min(28,h-16),'#52758a');sign('U-PLEX',x+5,y+h-20,w-10,'#385568','#fff8dc');}
+  }else if(b.type==='bookshop') {
+   rect(x+1,y+1,w-2,h-2,'#b87868');
+   if(w>34&&h>28)sign('홍익문고',x+2,y+h-18,w-4,'#a84840','#fff8d8');
+  }else if(b.type==='campus'&&w>90&&h>90){
+   rect(x+3,y+3,w-6,2,'#d8d2c2');
+   for(let xx=12;xx<w-10;xx+=24)rect(x+xx,y+8,1,h-16,'#a7a091');
+   if(b.label)sign(b.label,x+5,y+h-20,Math.min(w-10,104),'#e4dfd2','#5c5d5b');
+  }else if(w>42&&h>42){
+   rect(x+3,y+3,w-6,2,'#bcb3a0');
+   rect(x+3,y+h-5,w-6,1,'#968d7d');
   }
-  ctx.restore();ctx.save();footprintPath(b.points,cx,cy);ctx.strokeStyle='#504850';ctx.lineWidth=1;ctx.stroke();ctx.restore();
+  ctx.restore();ctx.save();footprintPath(b.points,cx,cy);ctx.clip();ctx.beginPath();
+  for(let ty=minY;ty<=maxY;ty++)for(let tx=minX;tx<=maxX;tx++)if(m.buildingAt[ty][tx]===buildingId)ctx.rect(tx*T-cx,ty*T-cy,T,T);
+  ctx.clip();ctx.strokeStyle=b.type==='block'?'#827b6c':'#625e55';ctx.lineWidth=1;ctx.stroke();ctx.restore();
   return;
  }
  rect(x+4,y+5,w,h,'#786878');outline(x,y,w,h,'#e8d8b0');
@@ -137,8 +153,8 @@ function draw(){
  ctx.clearRect(0,0,W,H);
  for(let y=Math.floor(cy/T);y<Math.min(m.h,Math.ceil((cy+H)/T));y++)for(let x=Math.floor(cx/T);x<Math.min(m.w,Math.ceil((cx+W)/T));x++)drawTile(m,m.tiles[y][x],x*T-cx,y*T-cy,x,y);
  if(zone==='street')for(const r of m.roads){ctx.strokeStyle='#f8e8a8';ctx.lineWidth=1;ctx.setLineDash([7,9]);ctx.beginPath();r.points.forEach(([x,y],i)=>i?ctx.lineTo(x*T-cx,y*T-cy):ctx.moveTo(x*T-cx,y*T-cy));ctx.stroke();ctx.setLineDash([]);}
- const orderedBuildings=m.orderedBuildings||(m.orderedBuildings=[...m.buildings].sort((a,b)=>(a.y+a.h)-(b.y+b.h)));
- for(const b of orderedBuildings)if(b.x*T<cx+W&&(b.x+b.w)*T>cx&&b.y*T<cy+H&&(b.y+b.h)*T>cy)drawBuilding(b,cx,cy);
+ const orderedBuildings=m.orderedBuildings||(m.orderedBuildings=m.buildings.map((b,index)=>({b,index})).sort((a,b)=>(a.b.y+a.b.h)-(b.b.y+b.b.h)));
+ for(const {b,index} of orderedBuildings)if(b.x*T<cx+W&&(b.x+b.w)*T>cx&&b.y*T<cy+H&&(b.y+b.h)*T>cy)drawBuilding(b,index,m,cx,cy);
  const objects=[...m.trees.map(o=>({...o,type:'tree'})),...m.props,...m.npcs.map(o=>({...o,type:'npc'})),{...v,type:'hero'}].filter(o=>o.x*T>cx-50&&o.x*T<cx+W+50&&o.y*T>cy-50&&o.y*T<cy+H+50).sort((a,b)=>a.y-b.y);
  for(const o of objects){const x=o.x*T-cx,y=o.y*T-cy;if(o.type==='tree')drawTree(x,y);else if(o.type==='hero'||o.type==='npc'){const step=o.type==='hero'&&animation?(player.step%2?1:2):0;paintSprite(ctx,x,y-1,o.type==='hero'?'hero':o.style,o.type==='hero'?player.dir:o.dir,step);}else drawProp(o,x,y);}
  for(const p of m.portals)if(p.x*T>cx-40&&p.x*T<cx+W+40&&p.y*T>cy-30&&p.y*T<cy+H+30)drawPortal(p,cx,cy);

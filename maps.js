@@ -48,26 +48,18 @@ const SURFACE_EXITS=CITY_GEOGRAPHY.exits;
 const exitInside={1:[5,4],2:[16,4],3:[24,4],4:[34,4],5:[36,21],6:[27,22],7:[16,22],8:[5,21]};
 const storefronts=[{x:46,y:137,tx:18,ty:4,label:'현대백화점 B2'},{x:58,y:120,tx:26,ty:3,label:'U-PLEX · 지하 연결'}];
 for(const e of [...SURFACE_EXITS,...storefronts])for(let y=e.y-3;y<=e.y+2;y++)for(let x=e.x-2;x<=e.x+3;x++)if(roadReserve[y]?.[x]!==undefined)roadReserve[y][x]=true;
-function landmark(x,y,w,h,name,type,roof){addBuilding(street,x,y,w,h,name,roof,type);}
-// Facades are drawn as whole buildings at their surveyed footprints.
-landmark(38,121,12,15,'현대백화점','hyundai','#c8c0a8');
-landmark(53,113,6,6,'U-PLEX','uplex','#72b0c8');
-landmark(61,132,4,3,'홍익문고','bookshop','#b05850');
-landmark(30,32,19,15,'연세공학원','campus','#a0a0b0');
-landmark(72,10,11,15,'백주년기념관','campus','#a0a0b0');
-// Keep every surveyed footprint as a separate building. The renderer clips
-// the roof and facade to its actual outline, preserving the narrow alleys.
-const roofColors=['#a89868','#8898a8','#b08070','#889878','#a88898','#a8a088'];
-const ignoredBuildings=new Set(['1436163437','1436163440','1436159554','1436159556','1436179997','1436179994','1436170974','1436170957','1436159561']);
-const heroBuildings=[{x:38,y:121,w:12,h:15},{x:53,y:113,w:6,h:6},{x:61,y:132,w:4,h:3},{x:30,y:32,w:19,h:15},{x:72,y:10,w:11,h:15}];
+// Keep every surveyed footprint separate and render landmarks on their actual OSM outlines.
+const roofColors=['#aaa18e'];
+const bookPOI=CITY_GEOGRAPHY.pois.find(p=>p.name==='홍익문고');
+const bookFootprint=CITY_GEOGRAPHY.buildings.filter(b=>bookPOI&&inPolygon(bookPOI.x+.5,bookPOI.y+.5,b.points)).sort((a,b)=>b.points.length-a.points.length)[0];
 for(const b of CITY_GEOGRAPHY.buildings){
- if(ignoredBuildings.has(b.id)||b.branch==='U Plex'||b.branch==='신촌점')continue;
- const {x:bx,y:by,w:bw,h:bh}=b.bbox,cx=bx+bw/2,cy=by+bh/2;
- if(heroBuildings.some(r=>cx>=r.x&&cx<r.x+r.w&&cy>=r.y&&cy<r.y+r.h))continue;
+ const {x:bx,y:by,w:bw,h:bh}=b.bbox;
  const x0=Math.max(1,bx),y0=Math.max(1,by),x1=Math.min(street.w-1,bx+bw),y1=Math.min(street.h-1,by+bh);
  if(x1<=x0||y1<=y0)continue;
  const id=street.buildings.length;
- street.buildings.push({x:bx,y:by,w:bw,h:bh,label:'',roof:roofColors[Number(b.id)%roofColors.length],type:'block',points:b.points,footprint:true});
+ const landmarkType=b.branch==='신촌점'?'hyundai':b.branch==='U Plex'?'uplex':b.id===bookFootprint?.id?'bookshop':b.name.includes('공학원 (102)')||b.name.includes('백주년기념관 (201)')?'campus':'block';
+ const label=landmarkType==='hyundai'?'현대백화점':landmarkType==='uplex'?'U-PLEX':landmarkType==='bookshop'?'홍익문고':b.name.includes('공학원')?'공학원':b.name.includes('백주년기념관')?'백주년기념관':'';
+ street.buildings.push({x:bx,y:by,w:bw,h:bh,label,roof:landmarkType==='hyundai'?'#d1cbbb':landmarkType==='uplex'?'#80a9b8':landmarkType==='bookshop'?'#b87868':landmarkType==='campus'?'#b8b2a2':roofColors[0],type:landmarkType,points:b.points,footprint:true});
  for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++)if(!roadReserve[y][x]&&![2,3,7,9].includes(street.tiles[y][x])&&inPolygon(x+.5,y+.5,b.points)){street.tiles[y][x]=9;street.buildingAt[y][x]=id;}
 }
 // Entrances occupy reserved gaps, never generic storefronts.
