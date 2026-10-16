@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="openstreetmap-cgimap 2.1.0 (3807405 spike-06.openstreetmap.org)" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/">
+ <node id="2364556158" visible="true" version="5" changeset="172958451" timestamp="2025-10-07T12:57:04Z" user="avsdyvwaoebmeahos" uid="5198363" lat="37.5556988" lon="126.9359662">
+  <tag k="entrance" v="yes"/>
+  <tag k="name" v="현대백화점 신촌역 지하통로"/>
+ </node>
+ <node id="3404915393" visible="true" version="11" changeset="175889085" timestamp="2025-12-13T15:58:16Z" user="aaei924" uid="10626814" lat="37.5554764" lon="126.9364458">
+  <tag k="description" v="신촌역 1번출구"/>
+  <tag k="description:en" v="Sinchon Station gate 1"/>
+  <tag k="description:ja" v="新村駅 1番出口"/>
+  <tag k="description:ko" v="신촌역 1번출구"/>
+  <tag k="railway" v="subway_entrance"/>
+  <tag k="ref" v="1"/>
+  <tag k="wheelchair" v="no"/>
+ </node>
+ <node id="3404915394" visible="true" version="11" changeset="175889085" timestamp="2025-12-13T15:58:16Z" user="aaei924" uid="10626814" lat="37.5555877" lon="126.9367481">
+  <tag k="description" v="신촌역 2번출구"/>
+  <tag k="description:en" v="Sinchon Station gate 2"/>
+  <tag k="description:ja" v="新村駅 2番出口"/>
+  <tag k="description:ko" v="신촌역 2번 출구"/>
+  <tag k="railway" v="subway_entrance"/>
+  <tag k="ref" v="2"/>
+  <tag k="wheelchair" v="no"/>
+ </node>
+ <node id="3404915395" visible="true" version="9" changeset="175889085" timestamp="2025-12-13T15:58:16Z" user="aaei924" uid="10626814" lat="37.5555878" lon="126.9370061">
+  <tag k="description" v="신촌역 3번출구"/>
+  <tag k="description:en" v="Sinchon Station gate 3"/>
+  <tag k="description:ja" v="新村駅 3番出口"/>
+  <tag k="description:ko" v="신촌역 3번 출구"/>
+  <tag k="railway" v="subway_entrance"/>
+  <tag k="ref" v="3"/>
+ </node>
+ <node id="3404915396" visible="true" version="11" changeset="175889085" timestamp="2025-12-13T15:58:16Z" user="aaei924" uid="10626814" lat="37.5554545" lon="126.9372855">
+  <tag k="description" v="신촌역 4번출구"/>
+  <tag k="description:en" v="Sinchon Station gate 4"/>
+  <tag k="description:ja" v="新村駅 4番出口"/>
+  <tag k="description:ko" v="신촌역 4번 출구"/>
+  <tag k="railway" v="subway_entrance"/>
+  <tag k="ref" v="4"/>
+  <tag k="wheelchair" v="no"/>
+ </node>
+ <node id="3404915397" visible="true" version="9" changeset="175889085" timestamp="2025-12-13T15:58:16Z" user="aaei924" uid="10626814" lat="37.5548571" lon="126.9373677">
+  <tag k="description" v="신촌역 6번출구"/>
+  <tag k="description:en" v="Sinchon Station gate 6"/>
+  <tag k="description:ja" v="新村駅 6番出口"/>
+  <tag k="description:ko" v="신촌역 6번출구"/>
+  <tag k="railway" v="subway_entrance"/>
+  <tag k="ref" v="6"/>
+ </node>
+ <node id="3404915398" visible="true" version="8" changeset="175889085" timestamp="2025-12-13T15:58:16Z" user="aaei924" uid="10626814" lat="37.5551724" lon="126.9376773">
+  <tag k="description" v="신촌역 5번출구"/>
+  <tag k="description:en" v="Sinchon Station gate 5"/>
+  <tag k="description:ja" v="新村駅 5番出口"/>
+  <tag k="description:ko" v="신촌역 5번 출구"/>
+  <tag k="railway" v="subway_entrance"/>
+  <tag k="ref" v="5"/>
+ </node>
+ <node id="3404915400" visible="true" version="10" changeset="175889085" timestamp="2025-12-13T15:58:16Z" user="aaei924" uid="10626814" lat="37.5552463" lon="126.9360506">
+  <tag k="description" v="신촌역 8번출구"/>
+  <tag k="description:en" v="Sinchon Station gate 8"/>
+  <tag k="description:ja" v="新村駅 8番出口"/>
+  <tag k="description:ko" v="신촌역 8번출구"/>
+  <tag k="railway" v="subway_entrance"/>
+  <tag k="ref" v="8"/>
+  <tag k="wheelchair" v="limited"/>
+ </node>
+ <node id="3617116348" visible="true" version="7" changeset="175889085" timestamp="2025-12-13T15:58:16Z" user="aaei924" uid="10626814" lat="37.5550038" lon="126.9363090">
+  <tag k="description" v="신촌역 7번출구"/>
+  <tag k="description:en" v="Sinchon Station Gate 7"/>
+  <tag k="description:ja" v="新村駅 7番出口"/>
+  <tag k="description:ko" v="신촌역 7번출구"/>
+  <tag k="railway" v="subway_entrance"/>
+  <tag k="ref" v="7"/>
+ </node>
+ <node id="3864845891" visible="true" version="21" changeset="181525036" timestamp="2026-04-19T07:17:20Z" user="avsdyvwaoebmeahos" uid="5198363" lat="37.5572904" lon="126.9369077">
+  <tag k="junction" v="yes"/>
+  <tag k="name" v="연세로사거리"/>
+  <tag k="name:en" v="Yeonsero Crossroad"/>
+  <tag k="name:ja" v="延世路サゴリ"/>
+  <tag k="name:ko" v="연세로사거리"/>
+  <tag k="name:ko-Latn" v="Yeonserosageori"/>
+ </node>
+ <node id="5799952872" visible="true" version="5" changeset="173868320" timestamp="2025-10-28T07:16:23Z" user="avsdyvwaoebmeahos" uid="5198363" lat="37.5604517" lon="126.9368064">
+  <tag k="barrier" v="gate"/>
+  <tag k="name" v="연세대 정문"/>
+ </node>
+ <node id="11902890688" visible="true" version="5" changeset="174586905" timestamp="2025-11-13T05:26:38Z" user="avsdyvwaoebmeahos" uid="5198363" lat="37.5570069" lon="126.9367587">
+  <tag k="historic" v="memorial"/>
+  <tag k="name" v="빨잠 (빨간 잠망경)"/>
+  <tag k="name:en" v="Paljam (Red Periscope Monument)"/>
+  <tag k="name:ja" v="パルジャム (赤い潜望鏡)"/>
+ </node>
+ <node id="12557603701" visible="true" version="4" changeset="181525036" timestamp="2026-04-19T07:17:20Z" user="avsdyvwaoebmeahos" uid="5198363" lat="37.5570004" lon="126.9366620">
+  <tag k="entrance" v="yes"/>
+  <tag k="name" v="신촌역 빨잠 출구"/>
+  <tag k="opening_hours" v="08:00-22:00"/>
+ </node>
+ <node id="13206308287" visible="true" version="1" changeset="173079933" timestamp="2025-10-10T07:21:21Z" user="avsdyvwaoebmeahos" uid="5198363" lat="37.5557813" lon="126.9370132">
+  <tag k="name" v="홍익문고"/>
+  <tag k="name:en" v="Hong Ik Moon Go"/>
+  <tag k="name:ja" v="弘益文庫"/>
+  <tag k="name:ko" v="홍익문고"/>
+  <tag k="shop" v="books"/>
+ </node>
+</osm>

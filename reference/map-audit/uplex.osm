@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="openstreetmap-cgimap 2.1.0 (3814988 spike-06.openstreetmap.org)" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/">
+ <node id="3618643279" visible="true" version="5" changeset="173078440" timestamp="2025-10-10T06:37:40Z" user="avsdyvwaoebmeahos" uid="5198363" lat="37.5566161" lon="126.9367972"/>
+ <node id="3618643281" visible="true" version="5" changeset="173078440" timestamp="2025-10-10T06:37:40Z" user="avsdyvwaoebmeahos" uid="5198363" lat="37.5566170" lon="126.9364798"/>
+ <node id="3749774156" visible="true" version="3" changeset="62041557" timestamp="2018-08-27T14:04:19Z" user="minseo" uid="5186039" lat="37.5567856" lon="126.9364268"/>
+ <node id="3749774157" visible="true" version="6" changeset="173078440" timestamp="2025-10-10T06:37:40Z" user="avsdyvwaoebmeahos" uid="5198363" lat="37.5569112" lon="126.9368014"/>
+ <node id="5861128819" visible="true" version="2" changeset="180482604" timestamp="2026-03-27T02:54:59Z" user="avsdyvwaoebmeahos" uid="5198363" lat="37.5567549" lon="126.9364257"/>
+ <node id="5861128820" visible="true" version="3" changeset="172993828" timestamp="2025-10-08T09:21:59Z" user="avsdyvwaoebmeahos" uid="5198363" lat="37.5569128" lon="126.9366021"/>
+ <node id="5861128821" visible="true" version="2" changeset="173078440" timestamp="2025-10-10T06:37:40Z" user="avsdyvwaoebmeahos" uid="5198363" lat="37.5566650" lon="126.9364246"/>
+ <node id="5861128822" visible="true" version="2" changeset="173078440" timestamp="2025-10-10T06:37:40Z" user="avsdyvwaoebmeahos" uid="5198363" lat="37.5566658" lon="126.9364801"/>
+ <node id="9586186877" visible="true" version="1" changeset="118607225" timestamp="2022-03-17T19:00:35Z" user="Ryang_alt" uid="5951022" lat="37.5567127" lon="126.9364248"/>
+ <node id="13200478453" visible="true" version="2" changeset="172993828" timestamp="2025-10-08T09:21:59Z" user="avsdyvwaoebmeahos" uid="5198363" lat="37.5569115" lon="126.9367019">
+  <tag k="entrance" v="yes"/>
+ </node>
+ <way id="356392577" visible="true" version="12" changeset="177318840" timestamp="2026-01-16T23:16:20Z" user="Dmitry2013" uid="1185631">
+  <nd ref="3618643279"/>
+  <nd ref="3749774157"/>
+  <nd ref="13200478453"/>
+  <nd ref="5861128820"/>
+  <nd ref="3749774156"/>
+  <nd ref="5861128819"/>
+  <nd ref="9586186877"/>
+  <nd ref="5861128821"/>
+  <nd ref="5861128822"/>
+  <nd ref="3618643281"/>
+  <nd ref="3618643279"/>
+  <tag k="branch" v="U Plex"/>
+  <tag k="brand" v="현대백화점"/>
+  <tag k="brand:en" v="Hyundai Department Store"/>
+  <tag k="brand:ko" v="현대백화점"/>
+  <tag k="brand:wikidata" v="Q624388"/>
+  <tag k="building" v="yes"/>
+  <tag k="building:levels" v="12"/>
+  <tag k="height" v="60"/>
+  <tag k="level" v="13"/>
+  <tag k="name" v="현대"/>
+  <tag k="name:en" v="Hyundai"/>
+  <tag k="name:ja" v="現代百貨店 U-Plex"/>
+  <tag k="name:ko" v="현대"/>
+  <tag k="name:zh" v="U-Plex 現代百貨"/>
+  <tag k="operator" v="현대백화점그룹"/>
+  <tag k="operator:en" v="Hyundai Department Store Group"/>
+  <tag k="operator:ko" v="현대백화점그룹"/>
+  <tag k="operator:wikidata" v="Q5962584"/>
+  <tag k="shop" v="department_store"/>
+  <tag k="start_date" v="2009"/>
+ </way>
+</osm>

@@ -117,8 +117,8 @@ def compile_geography(source):
 
     def locations(features):
         return [dict(feature,
-                     x=(feature["x"] - OFFSET[0]) * GRID_SCALE,
-                     y=(feature["y"] - OFFSET[1]) * GRID_SCALE)
+                     x=round((feature["x"] - OFFSET[0]) * GRID_SCALE),
+                     y=round((feature["y"] - OFFSET[1]) * GRID_SCALE))
                 for feature in features if intersects([[feature["x"], feature["y"]]])]
 
     return {

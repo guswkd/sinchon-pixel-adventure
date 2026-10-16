@@ -179,6 +179,7 @@ function renderMap(){
  function label(name,x,y,kind){
   const point=project(x,y),exit=kind==='exit',road=kind==='road',w=exit?9:Math.ceil(c.measureText(name).width)+8,h=exit?11:13;
   const offsets=exit?[[0,0]]:[[0,-11],[0,11],[-w/2-5,0],[w/2+5,0],[0,-19],[0,19]];
+  if(exit)for(const d of [12,24,36])offsets.push([0,-d],[0,d],[-d,0],[d,0],[-d,-d],[d,-d],[-d,d],[d,d]);
   if(!exit)offsets.push([-w/2-5,-11],[w/2+5,-11],[-w/2-5,11],[w/2+5,11]);
   let box=null;
   for(const [dx,dy] of offsets){const b={x:Math.round(point.x+dx-w/2),y:Math.round(point.y+dy-h/2),w,h};if(b.x<4||b.x+w>W-4||b.y<24||b.y+h>H-28||overlaps(b))continue;box=b;break;}
@@ -188,7 +189,7 @@ function renderMap(){
  if(zone==='street'){
   for(const p of m.portals.filter(p=>p.exit).sort((a,b)=>a.exit-b.exit))label(String(p.exit),p.x,p.y,'exit');
   const priority={station:0,store:1,book:2,shop:3,campus:4,park:5,road:6};
-  for(const a of [...m.labels].filter(a=>['store','shop','book','campus'].includes(a.kind)||['연세로','명물길'].includes(a.name)).sort((a,b)=>(priority[a.kind]??5)-(priority[b.kind]??5)))label(a.name,a.x,a.y,a.kind);
+  for(const a of [...m.labels].filter(a=>['store','shop','book','campus','landmark'].includes(a.kind)||['연세로','명물길'].includes(a.name)).sort((a,b)=>(priority[a.kind]??5)-(priority[b.kind]??5)))label(a.name,a.x,a.y,a.kind);
  }else{
   for(const p of m.portals)label(p.sign||(p.exit?String(p.exit)+'번':p.target==='store'?'B1 ↑':p.target==='mall'?'B2 연결':p.target==='street'?'지상 ↑':'신촌역 →'),p.x,p.y,'indoor');
  }

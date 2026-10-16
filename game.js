@@ -11,8 +11,11 @@ let dialog=null,last=0,time=0,moveTimer=0,toastTimer,music=false,audio,musicTime
 let miniCache=null,priorPlace='',saveNotice='';
 try{
  const raw=localStorage.getItem(SAVE_KEY),saved=raw?JSON.parse(raw):null;
- if(saved&&maps[saved.zone]&&walkable(maps[saved.zone],saved.x,saved.y)){
-  zone=saved.zone;player={x:saved.x,y:saved.y,dir:0,step:0};visited=new Set((saved.visited||[]).filter(id=>STAMP_IDS.includes(id)));bag=(saved.bag||[]).filter(x=>['소금빵','은행잎'].includes(x));
+ if(saved&&maps[saved.zone]){
+  zone=saved.zone;let position=maps[zone].spawn;
+  if(walkable(maps[zone],saved.x,saved.y))position={x:saved.x,y:saved.y};
+  else{if(Number.isInteger(saved.x)&&Number.isInteger(saved.y)){try{position=nearestWalkable(maps[zone],saved.x,saved.y);}catch{}}saveNotice='지도 보정으로 걸을 수 있는 위치에서 다시 시작합니다. 기념품은 보관했어요.';}
+  player={...position,dir:0,step:0};visited=new Set((saved.visited||[]).filter(id=>STAMP_IDS.includes(id)));bag=(saved.bag||[]).filter(x=>['소금빵','은행잎'].includes(x));
  }else if(['v4','v3','v2','v1'].some(version=>localStorage.getItem('sinchon-walk-'+version))){
   const version=['v4','v3','v2','v1'].find(version=>localStorage.getItem('sinchon-walk-'+version));
   const old=JSON.parse(localStorage.getItem('sinchon-walk-'+version));bag=(old.bag||[]).filter(x=>['소금빵','은행잎'].includes(x));

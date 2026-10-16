@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="openstreetmap-cgimap 2.1.0 (3814935 spike-06.openstreetmap.org)" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/">
+ <node id="2364556158" visible="true" version="5" changeset="172958451" timestamp="2025-10-07T12:57:04Z" user="avsdyvwaoebmeahos" uid="5198363" lat="37.5556988" lon="126.9359662">
+  <tag k="entrance" v="yes"/>
+  <tag k="name" v="현대백화점 신촌역 지하통로"/>
+ </node>
+ <node id="2364556159" visible="true" version="5" changeset="173078749" timestamp="2025-10-10T06:48:22Z" user="avsdyvwaoebmeahos" uid="5198363" lat="37.5559001" lon="126.9354184"/>
+ <node id="2364556160" visible="true" version="4" changeset="173078749" timestamp="2025-10-10T06:48:22Z" user="avsdyvwaoebmeahos" uid="5198363" lat="37.5563754" lon="126.9356745"/>
+ <node id="2364556161" visible="true" version="3" changeset="170373982" timestamp="2025-08-13T07:36:12Z" user="minseo" uid="5186039" lat="37.5561694" lon="126.9362187"/>
+ <node id="3352633989" visible="true" version="2" changeset="170373982" timestamp="2025-08-13T07:36:12Z" user="minseo" uid="5186039" lat="37.5561896" lon="126.9361640"/>
+ <node id="3352633992" visible="true" version="1" changeset="28869612" timestamp="2015-02-15T18:41:39Z" user="bviksoe" uid="220265" lat="37.5562519" lon="126.9362006"/>
+ <node id="3352633999" visible="true" version="2" changeset="172958451" timestamp="2025-10-07T12:57:04Z" user="avsdyvwaoebmeahos" uid="5198363" lat="37.5563507" lon="126.9361424"/>
+ <node id="3352634001" visible="true" version="3" changeset="173078749" timestamp="2025-10-10T06:48:22Z" user="avsdyvwaoebmeahos" uid="5198363" lat="37.5563651" lon="126.9357049"/>
+ <node id="3352634006" visible="true" version="3" changeset="173078749" timestamp="2025-10-10T06:48:22Z" user="avsdyvwaoebmeahos" uid="5198363" lat="37.5564836" lon="126.9357704"/>
+ <node id="9586186876" visible="true" version="3" changeset="172958451" timestamp="2025-10-07T12:57:04Z" user="avsdyvwaoebmeahos" uid="5198363" lat="37.5563665" lon="126.9360972"/>
+ <node id="9703441858" visible="true" version="2" changeset="170373982" timestamp="2025-08-13T07:36:12Z" user="minseo" uid="5186039" lat="37.5563775" lon="126.9360675"/>
+ <node id="13200712316" visible="true" version="1" changeset="172958451" timestamp="2025-10-07T12:57:04Z" user="avsdyvwaoebmeahos" uid="5198363" lat="37.5563587" lon="126.9361186"/>
+ <node id="13200712336" visible="true" version="2" changeset="173032640" timestamp="2025-10-09T06:06:30Z" user="avsdyvwaoebmeahos" uid="5198363" lat="37.5557969" lon="126.9357051">
+  <tag k="entrance" v="yes"/>
+ </node>
+ <node id="13206245645" visible="true" version="1" changeset="173078749" timestamp="2025-10-10T06:48:22Z" user="avsdyvwaoebmeahos" uid="5198363" lat="37.5558260" lon="126.9360329">
+  <tag k="entrance" v="yes"/>
+ </node>
+ <node id="13206245652" visible="true" version="1" changeset="173078749" timestamp="2025-10-10T06:48:22Z" user="avsdyvwaoebmeahos" uid="5198363" lat="37.5562079" lon="126.9355822">
+  <tag k="entrance" v="yes"/>
+ </node>
+ <way id="227814148" visible="true" version="20" changeset="173078749" timestamp="2025-10-10T06:48:22Z" user="avsdyvwaoebmeahos" uid="5198363">
+  <nd ref="3352634001"/>
+  <nd ref="3352634006"/>
+  <nd ref="9703441858"/>
+  <nd ref="9586186876"/>
+  <nd ref="13200712316"/>
+  <nd ref="3352633999"/>
+  <nd ref="3352633992"/>
+  <nd ref="3352633989"/>
+  <nd ref="2364556161"/>
+  <nd ref="13206245645"/>
+  <nd ref="2364556158"/>
+ </way>
+ <way id="1436853628" visible="true" version="2" changeset="173078749" timestamp="2025-10-10T06:48:22Z" user="avsdyvwaoebmeahos" uid="5198363">
+  <nd ref="2364556158"/>
+  <nd ref="13200712336"/>
+  <nd ref="2364556159"/>
+  <nd ref="13206245652"/>
+  <nd ref="2364556160"/>
+  <nd ref="3352634001"/>
+ </way>
+ <relation id="19696463" visible="true" version="2" changeset="177318840" timestamp="2026-01-16T23:16:20Z" user="Dmitry2013" uid="1185631">
+  <member type="way" ref="227814148" role="outer"/>
+  <member type="way" ref="1436853628" role="outer"/>
+  <tag k="branch" v="신촌점"/>
+  <tag k="brand" v="현대백화점"/>
+  <tag k="brand:en" v="Hyundai Department Store"/>
+  <tag k="brand:ko" v="현대백화점"/>
+  <tag k="brand:wikidata" v="Q624388"/>
+  <tag k="brand:wikipedia" v="ko:현대백화점"/>
+  <tag k="building" v="retail"/>
+  <tag k="building:levels" v="12"/>
+  <tag k="height" v="57"/>
+  <tag k="level" v="12"/>
+  <tag k="name" v="현대"/>
+  <tag k="name:en" v="Hyundai"/>
+  <tag k="name:ja" v="現代百貨店"/>
+  <tag k="name:ko" v="현대"/>
+  <tag k="name:zh" v="現代百貨"/>
+  <tag k="operator" v="현대백화점그룹"/>
+  <tag k="operator:en" v="Hyundai Department Store Group"/>
+  <tag k="operator:ko" v="현대백화점그룹"/>
+  <tag k="operator:wikidata" v="Q5962584"/>
+  <tag k="operator:wikipedia" v="ko:현대백화점그룹"/>
+  <tag k="shop" v="department_store"/>
+  <tag k="start_date" v="1992"/>
+  <tag k="type" v="multipolygon"/>
+  <tag k="wheelchair" v="yes"/>
+ </relation>
+</osm>

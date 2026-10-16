@@ -245,14 +245,25 @@ console.log(result.join('\n'));
 const reference=JSON.parse(fs.readFileSync(path.join(root,'reference/map-data.json'),'utf8'));
 const geographic=JSON.parse(app.run('JSON.stringify(CITY_GEOGRAPHY)'));
 assert.equal(geographic.metresPerTile,1.5);
-assert.deepEqual(geographic.exits.map(({number,x,y})=>({number,x,y})),reference.exits.map(({number,x,y})=>({number,x:(x-14)*4,y:(y-2)*4})),'all exit numbers retain original geographic positions');
+assert.deepEqual(geographic.exits.map(({number,x,y})=>({number,x,y})),reference.exits.map(({number,x,y})=>({number,x:Math.round((x-14)*4),y:Math.round((y-2)*4)})),'exit positions are rounded only at the final 1.5 m grid');
 const sourceExitData=geographic.exits,stationExitPositions=JSON.parse(app.run('JSON.stringify(exitInside)'));
 const minExitX=Math.min(...sourceExitData.map(e=>e.x)),minExitY=Math.min(...sourceExitData.map(e=>e.y));
 for(const e of sourceExitData)assert.deepEqual(stationExitPositions[e.number],[Math.round(10+(e.x-minExitX)*.375),Math.round(8+(e.y-minExitY)*.375)],'station exit '+e.number+' follows its real surface direction and spacing');
 const gate=reference.pois.find(p=>p.name==='연세대 정문');
-assert.deepEqual(JSON.parse(app.run('JSON.stringify(maps.street.campusGate)')),{x:(gate.x-14)*4,y:(gate.y-2)*4});
+assert.deepEqual(JSON.parse(app.run('JSON.stringify(maps.street.campusGate)')),{x:Math.round((gate.x-14)*4),y:Math.round((gate.y-2)*4)});
+for(const [name,expression] of [
+ ['빨잠 (빨간 잠망경)',"maps.street.props.find(p=>p.name==='빨간 잠망경')"],
+ ['신촌역 빨잠 출구',"maps.street.portals.find(p=>p.label==='U-PLEX 지하통로 ↓')"],
+ ['현대백화점 신촌역 지하통로',"maps.street.portals.find(p=>p.label==='현대백화점 B2')"]
+]){
+ const p=geographic.pois.find(p=>p.name===name),actual=app.run(expression);
+ assert.deepEqual({x:actual.x,y:actual.y},{x:p.x,y:p.y},name+' uses its surveyed point');
+}
+assert.ok(entrance.x<periscope.x&&Math.abs(entrance.y-periscope.y)<=1,'the red-periscope entrance is west of the monument, not south');
 const buildings=JSON.parse(app.run('JSON.stringify(maps.street.buildings)'));
 const main=buildings.find(b=>b.type==='hyundai'),uplex=buildings.find(b=>b.type==='uplex'),book=buildings.find(b=>b.type==='bookshop');
+assert.equal(buildings.filter(b=>b.type==='hyundai').length,1,'Hyundai is one joined outline, without an artificial diagonal seam');
+assert.deepEqual(main.points[0],main.points.at(-1),'Hyundai outline closes at its original node');
 assert.ok(main.x+main.w/2<uplex.x+uplex.w/2&&main.y>uplex.y,'Hyundai is southwest of U-PLEX');
 assert.ok(book.x>uplex.x+uplex.w&&book.y>uplex.y,'Hongik is east of Yonsei-ro, southeast of U-PLEX');
 assert.ok(main.h>main.w,'Hyundai retains its long north-south footprint');
@@ -300,6 +311,9 @@ for(const version of ['v1','v2','v3','v4']){
  assert.ok(legacy.storage['sinchon-walk-v5'],version+' writes migrated save under v5');
 }
 const invalid=boot({'sinchon-walk-v4':JSON.stringify({zone:'street',x:-1,y:10000,bag:[]})});assert.equal(invalid.run('JSON.stringify({x:player.x,y:player.y})'),spawn);
+const correctedSave=boot({'sinchon-walk-v5':JSON.stringify({zone:'street',x:0,y:0,bag:['소금빵'],visited:['street','mall']})});
+assert.equal(correctedSave.run('walkable(maps[zone],player.x,player.y)'),true);
+assert.equal(correctedSave.run("bag.includes('소금빵')&&visited.has('mall')"),true,'map corrections relocate blocked saves without losing gifts or stamps');
 console.log('PASS save/load, invalid save recovery, v1–v4 migration preserving gifts and stamps');
 const exitsTest=boot();
 for(const {number} of reference.exits){
@@ -326,6 +340,14 @@ menuTest.key('Escape');assert.equal(menuTest.nodes.get('#journal-overlay').hidde
 menuTest.nodes.get('#zoom-button').onclick();assert.equal(menuTest.run('canvas.width'),320);assert.equal(menuTest.run('canvas.height'),240);
 menuTest.nodes.get('#zoom-button').onclick();assert.equal(menuTest.run('canvas.width'),256);assert.equal(menuTest.run('canvas.height'),192);
 menuTest.run("for(const id of Object.keys(maps)){zone=id;player={...maps[id].spawn,dir:0,step:0};draw();renderMap();}");
+const drawnLabels=[],mapNode=menuTest.nodes.get('#world-map'),mapContext=mapNode.getContext('2d');
+mapContext.fillText=text=>drawnLabels.push(text);
+for(const width of [240,400]){
+ mapNode.clientWidth=width;mapNode.clientHeight=300;drawnLabels.length=0;
+ menuTest.run("zone='street';player={...maps.street.spawn,dir:0,step:0};renderMap();");
+ for(let exit=1;exit<=8;exit++)assert.ok(drawnLabels.includes(String(exit)),'small map retains exit label '+exit);
+}
+mapContext.fillText=()=>{};
 console.log('PASS journal pauses movement, Escape closes, map state resets, zoom toggles, all maps render');
 const motionTest=boot();
 motionTest.run('player.x=32;player.y=60;animation={x:31,y:60,elapsed:44,duration:180}');
