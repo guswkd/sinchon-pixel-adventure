@@ -6,7 +6,7 @@ const root=path.resolve(__dirname,'..');
 const source=['assets/city-geography.js','maps.js','sprites.js','renderer.js','game.js'].map(f=>fs.readFileSync(path.join(root,f),'utf8')).join('\n');
 function boot(saved={}){
  const nodes=new Map(),handlers={},documentHandlers={},storage={...saved};
- const context2d=new Proxy({measureText:t=>({width:t.length*8})},{get:(o,k)=>o[k]||(()=>{})});
+ const context2d=new Proxy({measureText:t=>({width:t.length*8}),createImageData:(w,h)=>({data:new Uint8ClampedArray(w*h*4)}),putImageData(){}},{get:(o,k)=>o[k]||(()=>{})});
  function node(selector){if(!nodes.has(selector))nodes.set(selector,{hidden:['#map-overlay','#journal-overlay','#dialog'].includes(selector),width:selector==='#world-map'?480:208,height:selector==='#world-map'?460:176,style:{},dataset:{},textContent:'',tagName:'CANVAS',classList:{toggle(){}},handlers:{},addEventListener(k,fn){this.handlers[k]=fn},setPointerCapture(){},getContext(){return context2d;},setAttribute(k,v){this[k]=v},replaceChildren(){},append(){},focus(){},querySelector(){return node(selector+' .check')}});return nodes.get(selector)}
  const directionButtons=['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].map(key=>{const button=node('[data-key="'+key+'"]');button.dataset.key=key;button.tagName='BUTTON';return button;});
  const sandbox={console,document:{querySelector:node,querySelectorAll:s=>s==='[data-key]'?directionButtons:[],createTextNode(){return {}},createElement(){return {}},addEventListener(k,fn){documentHandlers[k]=fn}},window:{addEventListener(k,fn){handlers[k]=fn}},localStorage:{getItem:k=>storage[k]||null,setItem:(k,v)=>storage[k]=v},setTimeout(){},clearTimeout(){},setInterval(){},clearInterval(){},requestAnimationFrame(){}};
@@ -44,7 +44,7 @@ const periscope=approach(landmarkTest,'street','prop',{name:'빨간 잠망경'})
 const uplexBuilding=landmarkTest.run(`maps.street.buildings.find(b=>b.type==='uplex')`);
 assert.ok(periscope.x>=uplexBuilding.x&&periscope.x<uplexBuilding.x+uplexBuilding.w&&periscope.y<uplexBuilding.y,'periscope is immediately above U-PLEX footprint');
 const entrance=landmarkTest.run(`maps.street.portals.find(p=>p.label==='U-PLEX 지하통로 ↓')`);
-assert.ok(Math.abs(entrance.x-periscope.x)+Math.abs(entrance.y-periscope.y)<=4,'B2 entrance is beside the periscope');
+assert.ok(Math.abs(entrance.x-periscope.x)+Math.abs(entrance.y-periscope.y)<=16,'B2 entrance is beside the periscope');
 const location=landmarkTest.run('JSON.stringify({zone,x:player.x,y:player.y})');
 landmarkTest.key('KeyE','ㄷ',{isComposing:true});
 assert.equal(landmarkTest.run('dialog?.name'),'빨간 잠망경','periscope has its own description');
@@ -201,10 +201,13 @@ console.log(result.join('\n'));
 // Geographic anchors are verified against the independent, original OSM export.
 const reference=JSON.parse(fs.readFileSync(path.join(root,'reference/map-data.json'),'utf8'));
 const geographic=JSON.parse(app.run('JSON.stringify(CITY_GEOGRAPHY)'));
-assert.equal(geographic.metresPerTile,6);
-assert.deepEqual(geographic.exits.map(({number,x,y})=>({number,x,y})),reference.exits.map(({number,x,y})=>({number,x:x-14,y:y-2})),'all exit numbers retain original geographic positions');
+assert.equal(geographic.metresPerTile,1.5);
+assert.deepEqual(geographic.exits.map(({number,x,y})=>({number,x,y})),reference.exits.map(({number,x,y})=>({number,x:(x-14)*4,y:(y-2)*4})),'all exit numbers retain original geographic positions');
+const sourceExitData=geographic.exits,stationExitPositions=JSON.parse(app.run('JSON.stringify(exitInside)'));
+const minExitX=Math.min(...sourceExitData.map(e=>e.x)),minExitY=Math.min(...sourceExitData.map(e=>e.y));
+for(const e of sourceExitData)assert.deepEqual(stationExitPositions[e.number],[Math.round(10+(e.x-minExitX)*.375),Math.round(8+(e.y-minExitY)*.375)],'station exit '+e.number+' follows its real surface direction and spacing');
 const gate=reference.pois.find(p=>p.name==='연세대 정문');
-assert.deepEqual(JSON.parse(app.run('JSON.stringify(maps.street.campusGate)')),{x:gate.x-14,y:gate.y-2});
+assert.deepEqual(JSON.parse(app.run('JSON.stringify(maps.street.campusGate)')),{x:(gate.x-14)*4,y:(gate.y-2)*4});
 const buildings=JSON.parse(app.run('JSON.stringify(maps.street.buildings)'));
 const main=buildings.find(b=>b.type==='hyundai'),uplex=buildings.find(b=>b.type==='uplex'),book=buildings.find(b=>b.type==='bookshop');
 assert.ok(main.x+main.w/2<uplex.x+uplex.w/2&&main.y>uplex.y,'Hyundai is southwest of U-PLEX');
@@ -214,22 +217,22 @@ for(const [type,branch] of [['hyundai','신촌점'],['uplex','U Plex']]){
  const expected=reference.buildings.filter(b=>b.branch===branch),actual=buildings.filter(b=>b.type===type);
  assert.equal(actual.length,expected.length,branch+' keeps every mapped footprint');
  for(const source of expected){
-  const points=source.points.map(([x,y])=>[x-14,y-2]);
+  const points=source.points.map(([x,y])=>[(x-14)*4,(y-2)*4]);
   assert.ok(actual.some(building=>building.points.length===points.length&&building.points.every((point,index)=>Math.abs(point[0]-points[index][0])<.011&&Math.abs(point[1]-points[index][1])<.011)),branch+' preserves each original outline');
  }
 }
 const myeongmul=geographic.roads.find(r=>r.id==='383258757'),rawMyeongmul=reference.roads.find(r=>r.id===myeongmul.id);
-for(const i of [0,-1]){const point=myeongmul.points.at(i),rawPoint=rawMyeongmul.points.at(i);assert.ok(Math.abs(point[0]-(rawPoint[0]-14))<.02&&Math.abs(point[1]-(rawPoint[1]-2))<.02,'Myeongmul junction endpoints retain coordinates');}
-assert.ok(myeongmul.points.at(-1)[1]>100,'Myeongmul branches from the station half of Yonsei-ro');
+for(const i of [0,-1]){const point=myeongmul.points.at(i),rawPoint=rawMyeongmul.points.at(i);assert.ok(Math.abs(point[0]-(rawPoint[0]-14)*4)<.02&&Math.abs(point[1]-(rawPoint[1]-2)*4)<.02,'Myeongmul junction endpoints retain coordinates');}
+assert.ok(myeongmul.points.at(-1)[1]>400,'Myeongmul branches from the station half of Yonsei-ro');
 app.run(`(()=>{
  const m=maps.street,junction=CITY_GEOGRAPHY.roads.find(r=>r.id==='383258757').points.at(-1),start=nearestWalkable(m,Math.round(junction[0]),Math.round(junction[1]));
  const queue=[[start.x,start.y]],seen=new Set([start.x+','+start.y]);
  for(let i=0;i<queue.length;i++)for(const [dx,dy] of [[0,1],[0,-1],[1,0],[-1,0]]){const x=queue[i][0]+dx,y=queue[i][1]+dy,k=x+','+y;if(!seen.has(k)&&walkable(m,x,y)&&[2,3,7].includes(m.tiles[y][x])){seen.add(k);queue.push([x,y]);}}
- if(!queue.some(([x,y])=>Math.abs(x-60)<=1&&Math.abs(y-106)<=1))throw Error('Myeongmul does not connect to Yonsei-ro');
- if(!queue.some(([x,y])=>Math.abs(x-97)<=2&&Math.abs(y-73)<=2))throw Error('Myeongmul diagonal road disconnected');
+ if(!queue.some(([x,y])=>Math.abs(x-60*4)<=4&&Math.abs(y-106*4)<=4))throw Error('Myeongmul does not connect to Yonsei-ro');
+ if(!queue.some(([x,y])=>Math.abs(x-97*4)<=8&&Math.abs(y-73*4)<=8))throw Error('Myeongmul diagonal road disconnected');
  if(!queue.some(([x,y])=>Math.abs(x-m.campusGate.x)<=2&&Math.abs(y-m.campusGate.y)<=2))throw Error('Yonsei-ro does not reach campus crossing');
 })()`);
-console.log('PASS geography: 6 m grid, all eight source exits, landmark footprints, Myeongmul–Yonsei-ro–campus road connections');
+console.log('PASS geography: 1.5 m grid, all eight source exits, landmark footprints, Myeongmul–Yonsei-ro–campus road connections');
 // Real connection sequence, separate B2/B1 and return to the same numbered exit.
 usePortal(app,'street',{exit:2});
 usePortal(app,'station',{target:'mall'});
@@ -245,29 +248,29 @@ console.log('PASS round-trip: surface ↔ station ↔ B2 ↔ B1; both gifts; fiv
 app.run('save()');const savedPosition=app.run('JSON.stringify({x:player.x,y:player.y})');
 const restored=boot(app.storage);assert.equal(restored.run('JSON.stringify({x:player.x,y:player.y})'),savedPosition);assert.equal(restored.run('bag.length'),2);
 const spawn=app.run('JSON.stringify(maps.street.spawn)');
-for(const version of ['v1','v2','v3']){
+for(const version of ['v1','v2','v3','v4']){
  const legacy=boot({['sinchon-walk-'+version]:JSON.stringify({zone:'campus',x:25,y:20,bag:['소금빵','은행잎','invalid'],visited:['campus','mall','store','invalid']})});
  assert.equal(legacy.run('JSON.stringify({x:player.x,y:player.y})'),spawn,version+' resets position');
  assert.equal(legacy.run('zone'),'street');
  assert.deepEqual(JSON.parse(legacy.run('JSON.stringify(bag)')),['소금빵','은행잎'],version+' preserves valid gifts');
  assert.deepEqual(JSON.parse(legacy.run('JSON.stringify([...visited].sort())')),['campus','mall','store','street'],version+' preserves valid stamps');
- assert.ok(legacy.storage['sinchon-walk-v4'],version+' writes migrated save under v4');
+ assert.ok(legacy.storage['sinchon-walk-v5'],version+' writes migrated save under v5');
 }
 const invalid=boot({'sinchon-walk-v4':JSON.stringify({zone:'street',x:-1,y:10000,bag:[]})});assert.equal(invalid.run('JSON.stringify({x:player.x,y:player.y})'),spawn);
-console.log('PASS save/load, invalid save recovery, v1/v2/v3 migration preserving gifts and stamps');
+console.log('PASS save/load, invalid save recovery, v1–v4 migration preserving gifts and stamps');
 const exitsTest=boot();
 for(const {number} of reference.exits){
  const surface=usePortal(exitsTest,'street',{exit:number});
  const interior=usePortal(exitsTest,'station',{exit:number});
  assert.equal(exitsTest.run('player.x'),interior.tx);assert.equal(exitsTest.run('player.y'),interior.ty);
- assert.ok(Math.abs(interior.tx-surface.x)+Math.abs(interior.ty-surface.y)<=4,'Exit '+number+' returns to the same surface location');
+ assert.ok(Math.abs(interior.tx-surface.x)+Math.abs(interior.ty-surface.y)<=8,'Exit '+number+' returns to the same surface location');
 }
 for(const [surfaceLabel,returnLabel] of [['현대백화점 B2','지상 · 현대백화점 ↑'],['U-PLEX 지하통로 ↓','지상 · U-PLEX ↑']]){
  const surface=usePortal(exitsTest,'street',{label:surfaceLabel});
  assert.equal(exitsTest.run('player.x'),surface.tx);assert.equal(exitsTest.run('player.y'),surface.ty);
  const interior=usePortal(exitsTest,'mall',{label:returnLabel});
  assert.equal(exitsTest.run('player.x'),interior.tx);assert.equal(exitsTest.run('player.y'),interior.ty);
- assert.ok(Math.abs(interior.tx-surface.x)+Math.abs(interior.ty-surface.y)<=2,surfaceLabel+' returns to its own entrance');
+ assert.ok(Math.abs(interior.tx-surface.x)+Math.abs(interior.ty-surface.y)<=8,surfaceLabel+' returns to its own entrance');
 }
 console.log('PASS eight numbered exit round-trips; Hyundai and U-PLEX each return to their own surface entrance');
 

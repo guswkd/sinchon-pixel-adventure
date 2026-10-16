@@ -5,7 +5,7 @@ ctx.imageSmoothingEnabled=false;
 const keys=new Set();
 const TURN_HOLD_MS=150,heldDirections=new Map();
 function clearControls(){keys.clear();heldDirections.clear();}
-const SAVE_KEY='sinchon-walk-v4';
+const SAVE_KEY='sinchon-walk-v5';
 let zone='street',player={...maps.street.spawn,dir:0,step:0},visited=new Set(['street']),bag=[];
 let dialog=null,last=0,time=0,moveTimer=0,toastTimer,music=false,audio,musicTimer,animation=null;
 let miniCache=null,priorPlace='',saveNotice='';
@@ -13,8 +13,9 @@ try{
  const raw=localStorage.getItem(SAVE_KEY),saved=raw?JSON.parse(raw):null;
  if(saved&&maps[saved.zone]&&walkable(maps[saved.zone],saved.x,saved.y)){
   zone=saved.zone;player={x:saved.x,y:saved.y,dir:0,step:0};visited=new Set((saved.visited||[]).filter(id=>STAMP_IDS.includes(id)));bag=(saved.bag||[]).filter(x=>['소금빵','은행잎'].includes(x));
- }else if(localStorage.getItem('sinchon-walk-v3')||localStorage.getItem('sinchon-walk-v2')||localStorage.getItem('sinchon-walk-v1')){
-  const old=JSON.parse(localStorage.getItem('sinchon-walk-v3')||localStorage.getItem('sinchon-walk-v2')||localStorage.getItem('sinchon-walk-v1'));bag=(old.bag||[]).filter(x=>['소금빵','은행잎'].includes(x));
+ }else if(['v4','v3','v2','v1'].some(version=>localStorage.getItem('sinchon-walk-'+version))){
+  const version=['v4','v3','v2','v1'].find(version=>localStorage.getItem('sinchon-walk-'+version));
+  const old=JSON.parse(localStorage.getItem('sinchon-walk-'+version));bag=(old.bag||[]).filter(x=>['소금빵','은행잎'].includes(x));
   visited=new Set((old.visited||[]).filter(id=>STAMP_IDS.includes(id)));
   saveNotice='지도가 바뀌어 신촌역 2번 출구에서 다시 시작합니다. 기념품은 보관했어요.';
  }

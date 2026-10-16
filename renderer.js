@@ -198,7 +198,13 @@ function renderMap(){
  const c=map.getContext('2d'),W=map.width,H=map.height,m=maps[zone],s=Math.min((W-20)/m.w,(H-54)/m.h),ox=(W-m.w*s)/2,oy=25+(H-54-m.h*s)/2;
  c.imageSmoothingEnabled=false;c.fillStyle='#fff8d8';c.fillRect(0,0,W,H);
  const colors=['#b8d888','#f0e8d0','#a8a8b8','#fff0b8','#d0d8c8','#e8d0a0','#385848','#d8c898','#789868','#c8bfa8','#d4cbb6'];
- for(let y=0;y<m.h;y++)for(let x=0;x<m.w;x++){c.fillStyle=colors[m.tiles[y][x]];c.fillRect(Math.floor(ox+x*s),Math.floor(oy+y*s),Math.ceil(s),Math.ceil(s));}
+ const rgb=colors.map(color=>{const value=parseInt(color.slice(1),16);return [(value>>16)&255,(value>>8)&255,value&255];});
+ const image=c.createImageData(W,H),pixels=image.data;
+ for(let py=Math.max(0,Math.floor(oy));py<Math.min(H,Math.ceil(oy+m.h*s));py++)for(let px=Math.max(0,Math.floor(ox));px<Math.min(W,Math.ceil(ox+m.w*s));px++){
+  const tx=Math.floor((px+.5-ox)/s),ty=Math.floor((py+.5-oy)/s);if(tx<0||ty<0||tx>=m.w||ty>=m.h)continue;
+  const color=rgb[m.tiles[ty][tx]],i=(py*W+px)*4;pixels[i]=color[0];pixels[i+1]=color[1];pixels[i+2]=color[2];pixels[i+3]=255;
+ }
+ c.putImageData(image,0,0);
  // Every anchor comes from the playable map; labels can move, their locations cannot.
  const project=(x,y)=>({x:Math.round(ox+(x+.5)*s),y:Math.round(oy+(y+.5)*s)}),me=project(player.x,player.y);
  const occupied=[{x:me.x-6,y:me.y-6,w:13,h:13}],placed=[];
