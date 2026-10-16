@@ -9,8 +9,8 @@ function drawTile(m,t,x,y,ix,iy){
   else rect(x,y,16,16,zone==='street'?'#f0e8c8':'#e8e0c8');return;
  }
  if(t===0){rect(x,y,16,16,'#b8d888');rect(x+3,y+4,1,2,'#80b068');rect(x+5,y+5,1,2,'#80b068');if((ix+iy)%3===0){rect(x+11,y+11,2,1,'#78a860');rect(x+12,y+9,1,2,'#78a860');}return;}
- if(t===1||t===7){rect(x,y,16,16,t===7?'#e8d8b0':'#f0e8d0');if(t===7){rect(x,y+15,16,1,'#c8b898');rect(x+8*(iy%2),y,1,16,'#c8b898');}else{rect(x+2,y+3,3,1,'#c8c0a8');rect(x+8,y+11,4,1,'#c8c0a8');rect(x+4,y+12,1,1,'#d8d0b8');}return;}
- if(t===2||t===3){rect(x,y,16,16,'#b0b0c0');if(t===3){rect(x+2,y,4,16,'#fff8e0');rect(x+10,y,4,16,'#fff8e0');}else{rect(x+3,y+6,1,1,'#9898a8');rect(x+11,y+13,1,1,'#9898a8');if(ix%7===0&&iy%9===0){outline(x+4,y+4,8,8,'#888898');for(let k=0;k<3;k++)rect(x+5,y+5+k*2,6,1,'#585868');}}return;}
+ if(t===1||t===7){rect(x,y,16,16,t===7?'#e8d8b0':'#f0e8d0');if(t===7){rect(x,y+15,16,1,'#c8b898');rect(x+8*(iy%2),y,1,16,'#c8b898');}else if((ix+iy)%4===0){rect(x,y+15,16,1,'#e4dcc8');}return;}
+ if(t===2||t===3){rect(x,y,16,16,'#b0b0c0');if(t===3){rect(x+2,y,4,16,'#fff8e0');rect(x+10,y,4,16,'#fff8e0');}else if(ix%8===0&&iy%10===0){rect(x+6,y+8,2,1,'#9898a8');}return;}
  if(t===4||t===5){rect(x,y,16,16,t===4?'#e0e0d0':'#f0e0b8');rect(x,y+15,16,1,t===4?'#b0b8b0':'#c8b898');rect(x+15,y,1,16,t===4?'#b0b8b0':'#c8b898');if(t===5&&(ix+iy)%2===0)rect(x+1,y+1,14,14,'#e8d0a0');return;}
  if(t===6){rect(x,y,16,16,'#484050');for(let i=0;i<4;i++){rect(x+1,y+1+i*4,14,2,'#d8d0c0');rect(x+1,y+3+i*4,14,1,'#9890a0');}return;}
  if(t===8){rect(x,y,16,16,'#789868');outline(x,y,16,9,'#98b880','#486850');rect(x+2,y+2,11,1,'#c0d890');rect(x+2,y+5,1,2,'#688058');}
@@ -43,7 +43,7 @@ function drawBuilding(b,buildingId,m,cx,cy){
    if(w>54&&h>58){outline(x+5,y+7,w-10,Math.min(28,h-16),'#52758a');sign('U-PLEX',x+5,y+h-20,w-10,'#385568','#fff8dc');}
   }else if(b.type==='bookshop') {
    rect(x+1,y+1,w-2,h-2,'#b87868');
-   if(w>34&&h>28)sign('홍익문고',x+2,y+h-18,w-4,'#a84840','#fff8d8');
+   if(w>56&&h>48)sign('홍익문고',x+2,y+h-18,w-4,'#a84840','#fff8d8');
   }else if(b.type==='campus'&&w>90&&h>90){
    rect(x+3,y+3,w-6,2,'#d8d2c2');
    for(let xx=12;xx<w-10;xx+=24)rect(x+xx,y+8,1,h-16,'#a7a091');
