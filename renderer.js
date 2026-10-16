@@ -167,7 +167,7 @@ function renderMap(){
  const map=$('#world-map');map.width=Math.max(220,Math.round(map.clientWidth||480));map.height=Math.max(260,Math.round(map.clientHeight||460));
  const c=map.getContext('2d'),W=map.width,H=map.height,m=maps[zone],s=Math.min((W-20)/m.w,(H-54)/m.h),ox=(W-m.w*s)/2,oy=25+(H-54-m.h*s)/2;
  c.imageSmoothingEnabled=false;c.fillStyle='#fff8d8';c.fillRect(0,0,W,H);
- const colors=['#b8d888','#f0e8d0','#a8a8b8','#fff0b8','#d0d8c8','#e8d0a0','#385848','#d8c898','#789868','#a09888'];
+ const colors=['#b8d888','#f0e8d0','#a8a8b8','#fff0b8','#d0d8c8','#e8d0a0','#385848','#d8c898','#789868','#c8bfa8'];
  for(let y=0;y<m.h;y++)for(let x=0;x<m.w;x++){c.fillStyle=colors[m.tiles[y][x]];c.fillRect(Math.floor(ox+x*s),Math.floor(oy+y*s),Math.ceil(s),Math.ceil(s));}
  // Every anchor comes from the playable map; labels can move, their locations cannot.
  const project=(x,y)=>({x:Math.round(ox+(x+.5)*s),y:Math.round(oy+(y+.5)*s)}),me=project(player.x,player.y);
