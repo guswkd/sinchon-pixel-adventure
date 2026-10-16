@@ -12,6 +12,7 @@ function drawTile(m,t,x,y,ix,iy){
  if(t===1||t===7){rect(x,y,16,16,t===7?'#e8d8b0':'#f0e8d0');if(t===7){rect(x,y+15,16,1,'#c8b898');rect(x+8*(iy%2),y,1,16,'#c8b898');}else if((ix+iy)%4===0){rect(x,y+15,16,1,'#e4dcc8');}return;}
  if(t===2||t===3){rect(x,y,16,16,'#b0b0c0');if(t===3){rect(x+2,y,4,16,'#fff8e0');rect(x+10,y,4,16,'#fff8e0');}else if(ix%8===0&&iy%10===0){rect(x+6,y+8,2,1,'#9898a8');}return;}
  if(t===4||t===5){rect(x,y,16,16,t===4?'#e0e0d0':'#f0e0b8');rect(x,y+15,16,1,t===4?'#b0b8b0':'#c8b898');rect(x+15,y,1,16,t===4?'#b0b8b0':'#c8b898');if(t===5&&(ix+iy)%2===0)rect(x+1,y+1,14,14,'#e8d0a0');return;}
+ if(t===10){rect(x,y,16,16,'#d4cbb6');rect(x+1,y+1,14,14,'#e8e0ce');rect(x+1,y+14,14,1,'#c0b69f');if((ix+iy)%2===0)rect(x+7,y+6,2,4,'#c8a858');return;}
  if(t===6){rect(x,y,16,16,'#484050');for(let i=0;i<4;i++){rect(x+1,y+1+i*4,14,2,'#d8d0c0');rect(x+1,y+3+i*4,14,1,'#9890a0');}return;}
  if(t===8){rect(x,y,16,16,'#789868');outline(x,y,16,9,'#98b880','#486850');rect(x+2,y+2,11,1,'#c0d890');rect(x+2,y+5,1,2,'#688058');}
 }
@@ -28,7 +29,7 @@ function drawBuilding(b,buildingId,m,cx,cy){
   // read as calm roof blocks instead of hundreds of outlined roof fragments.
   const minX=Math.max(0,Math.floor(cx/T)),maxX=Math.min(m.w-1,Math.ceil((cx+canvas.width)/T));
   const minY=Math.max(0,Math.floor(cy/T)),maxY=Math.min(m.h-1,Math.ceil((cy+canvas.height)/T));
-  ctx.save();footprintPath(b.points,cx,cy);ctx.clip();ctx.beginPath();
+  ctx.save();footprintPath(b.points,cx,cy);ctx.clip();ctx.beginPath();const seams=[];
   for(let ty=minY;ty<=maxY;ty++)for(let tx=minX;tx<=maxX;tx++)if(m.buildingAt[ty][tx]===buildingId)ctx.rect(tx*T-cx,ty*T-cy,T,T);
   ctx.clip();
   const roofPalette=['#c8c1b1','#c2bcac','#d0c8b6','#bdb7a8'];
@@ -59,20 +60,27 @@ function drawBuilding(b,buildingId,m,cx,cy){
    if(w>90&&h>80){outline(x+w-29,y+8,17,12,'#c6c0b0','#b1aa99');rect(x+w-26,y+11,11,2,'#a9a394');}
   }
   ctx.restore();
-  // Only outer block edges are drawn; shared walls inside a dense city block
-  // disappear, while the special landmarks retain a clear silhouette.
+  // Thin seams separate adjacent roofs. Southern edges get a small wall shade
+  // so the block has depth at walking scale.
+  const southWalls=[];
   ctx.save();footprintPath(b.points,cx,cy);ctx.clip();ctx.beginPath();
   for(let ty=minY;ty<=maxY;ty++)for(let tx=minX;tx<=maxX;tx++)if(m.buildingAt[ty][tx]===buildingId){
    const neighbor=(nx,ny)=>{const id=m.buildingAt[ny]?.[nx]??-1;return id<0?null:m.buildings[id]?.type;};
    const x0=tx*T-cx,y0=ty*T-cy;
    for(const [dx,dy,sx,sy,ex,ey] of [[0,-1,x0,y0,x0+T,y0],[1,0,x0+T,y0,x0+T,y0+T],[0,1,x0,y0+T,x0+T,y0+T],[-1,0,x0,y0,x0,y0+T]]){
     const adjacent=neighbor(tx+dx,ty+dy);
-    if(adjacent==='block'&&b.type==='block')continue;
+    if(adjacent==='block'&&b.type==='block'){seams.push([sx,sy,ex,ey]);continue;}
+    if(dy===1&&!adjacent)southWalls.push([sx,sy,ex,ey]);
     if(adjacent===b.type)continue;
     ctx.moveTo(sx,sy);ctx.lineTo(ex,ey);
    }
   }
   ctx.strokeStyle=b.type==='block'?'#a29b8c':b.type==='uplex'?'#486878':b.type==='hyundai'?'#928b7c':'#625e55';ctx.lineWidth=1;ctx.stroke();ctx.restore();
+  if(seams.length||southWalls.length){ctx.save();footprintPath(b.points,cx,cy);ctx.clip();
+   if(seams.length){ctx.beginPath();for(const [sx,sy,ex,ey] of seams){ctx.moveTo(sx,sy);ctx.lineTo(ex,ey);}ctx.strokeStyle='#b4ad9e';ctx.lineWidth=1;ctx.stroke();}
+   if(southWalls.length){ctx.beginPath();for(const [sx,sy,ex,ey] of southWalls){ctx.moveTo(sx,sy);ctx.lineTo(ex,ey);}ctx.strokeStyle=b.type==='block'?'#958d7e':b.type==='uplex'?'#3e5f6b':'#766e63';ctx.lineWidth=2;ctx.stroke();}
+   ctx.restore();
+  }
   return;
  }
  rect(x+4,y+5,w,h,'#786878');outline(x,y,w,h,'#e8d8b0');
@@ -185,7 +193,7 @@ function renderMap(){
  const map=$('#world-map');map.width=Math.max(220,Math.round(map.clientWidth||480));map.height=Math.max(260,Math.round(map.clientHeight||460));
  const c=map.getContext('2d'),W=map.width,H=map.height,m=maps[zone],s=Math.min((W-20)/m.w,(H-54)/m.h),ox=(W-m.w*s)/2,oy=25+(H-54-m.h*s)/2;
  c.imageSmoothingEnabled=false;c.fillStyle='#fff8d8';c.fillRect(0,0,W,H);
- const colors=['#b8d888','#f0e8d0','#a8a8b8','#fff0b8','#d0d8c8','#e8d0a0','#385848','#d8c898','#789868','#c8bfa8'];
+ const colors=['#b8d888','#f0e8d0','#a8a8b8','#fff0b8','#d0d8c8','#e8d0a0','#385848','#d8c898','#789868','#c8bfa8','#d4cbb6'];
  for(let y=0;y<m.h;y++)for(let x=0;x<m.w;x++){c.fillStyle=colors[m.tiles[y][x]];c.fillRect(Math.floor(ox+x*s),Math.floor(oy+y*s),Math.ceil(s),Math.ceil(s));}
  // Every anchor comes from the playable map; labels can move, their locations cannot.
  const project=(x,y)=>({x:Math.round(ox+(x+.5)*s),y:Math.round(oy+(y+.5)*s)}),me=project(player.x,player.y);

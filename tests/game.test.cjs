@@ -56,6 +56,15 @@ assert.equal(landmarkTest.run('JSON.stringify({zone,x:player.x,y:player.y})'),lo
 usePortal(landmarkTest,'street',{label:'U-PLEX 지하통로 ↓'});
 assert.equal(landmarkTest.run('zone'),'mall','U-PLEX entrance enters B2');
 assert.equal(landmarkTest.run('walkable(maps.mall,31,10)'),true,'marked underground corridor is walkable');
+const b2Route=landmarkTest.run(`(()=>{
+ const m=maps.mall,start=m.portals.find(p=>p.target==='street'&&p.sign==='U-PLEX ↑'),exit=m.portals.find(p=>p.target==='station');
+ const q=[[start.x,start.y]],prev=new Map([[start.x+','+start.y,null]]);
+ for(let i=0;i<q.length;i++)for(const [dx,dy] of [[0,1],[0,-1],[1,0],[-1,0]]){const x=q[i][0]+dx,y=q[i][1]+dy,k=x+','+y;if(!prev.has(k)&&walkable(m,x,y)){prev.set(k,q[i][0]+','+q[i][1]);q.push([x,y]);}}
+ const end=q.find(([x,y])=>Math.abs(x-exit.x)+Math.abs(y-exit.y)<=2);if(!end)return false;
+ let hasPassage=false,key=end[0]+','+end[1];while(key){const [x,y]=key.split(',').map(Number);hasPassage||=m.tiles[y][x]===TILE.PASSAGE;key=prev.get(key);}
+ return hasPassage;
+})()`);
+assert.equal(b2Route,true,'continuous marked indoor passage links U-PLEX to station');
 usePortal(landmarkTest,'mall',{label:'신촌역 →'});
 assert.equal(landmarkTest.run('zone'),'station','B2 corridor connects to Sinchon Station');
 console.log('PASS U-PLEX: periscope above footprint, adjacent B2 entrance, walkable B2 passage to station');

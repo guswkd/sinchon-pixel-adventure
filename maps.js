@@ -1,6 +1,6 @@
 'use strict';
 // v4: geographic street lines and parcels with authored pixel-art facades.
-const TILE = { GRASS:0, PAVEMENT:1, ROAD:2, CROSSING:3, STATION:4, FOOD:5, STAIRS:6, PLAZA:7, WALL:8, BUILDING:9 };
+const TILE = { GRASS:0, PAVEMENT:1, ROAD:2, CROSSING:3, STATION:4, FOOD:5, STAIRS:6, PLAZA:7, WALL:8, BUILDING:9, PASSAGE:10 };
 const MAP_NAMES={street:'신촌역 · 연세로',station:'2호선 신촌역',mall:'현대백화점 B2',store:'현대백화점 B1 식품관',campus:'연세대학교 · 백양로'};
 const STAMP_IDS=['street','station','mall','store','campus'];
 const maps={};
@@ -103,8 +103,8 @@ const mall=makeMap(34,26,4);maps.mall=mall;sealMap(mall);
 area(mall,15,2,5,21,7);
 // The U-PLEX entrance opens onto a marked B2 corridor that bends south
 // along the east edge of the shops, then west to the station connection.
-area(mall,25,2,8,3,7);area(mall,30,4,3,11,7);area(mall,20,13,13,4,7);
-addBuilding(mall,4,4,7,5,'GROUND','#9880b0','counter');addBuilding(mall,23,4,7,5,'POP-UP','#78a090','counter');addBuilding(mall,4,17,7,5,'LIFESTYLE','#8898c0','counter');
+area(mall,25,2,8,3,TILE.PASSAGE);area(mall,30,4,3,11,TILE.PASSAGE);area(mall,20,13,13,4,TILE.PASSAGE);
+addBuilding(mall,4,4,7,5,'GROUND SINCHON','#9880b0','counter');addBuilding(mall,23,4,7,5,'올리브영','#78a090','counter');addBuilding(mall,4,17,7,5,'LIFESTYLE','#8898c0','counter');
 addPortal(mall,32,14,'station',4,11,'신촌역 →');addPortal(mall,16,7,'store',16,20,'B1 식품관 ↑');addPortal(mall,18,2,'street',46,139,'지상 · 현대백화점 ↑',{sign:'현백 ↑'});addPortal(mall,26,2,'street',56,111,'지상 · U-PLEX ↑',{sign:'U-PLEX ↑'});
 mall.props.push({x:30,y:5,type:'sign',text:'U-PLEX · B2 연결통로 ↓'},{x:29,y:15,type:'sign',text:'신촌역 →'});
 addNPC(mall,19,12,'백화점 안내 직원',['여기는 신촌역과 연결된 B2층이야.','U-PLEX 출구에서 오른쪽 복도를 따라 내려가면 신촌역이야.','식품관은 위쪽 에스컬레이터로 올라가면 돼.'],'clerk');mall.spawn={x:30,y:14};
