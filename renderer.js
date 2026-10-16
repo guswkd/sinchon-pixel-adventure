@@ -78,7 +78,11 @@ function drawBuilding(b,buildingId,m,cx,cy){
   ctx.strokeStyle=b.type==='block'?'#a29b8c':b.type==='uplex'?'#486878':b.type==='hyundai'?'#928b7c':'#625e55';ctx.lineWidth=1;ctx.stroke();ctx.restore();
   if(seams.length||southWalls.length){ctx.save();footprintPath(b.points,cx,cy);ctx.clip();
    if(seams.length){ctx.beginPath();for(const [sx,sy,ex,ey] of seams){ctx.moveTo(sx,sy);ctx.lineTo(ex,ey);}ctx.strokeStyle='#b4ad9e';ctx.lineWidth=1;ctx.stroke();}
-   if(southWalls.length){ctx.beginPath();for(const [sx,sy,ex,ey] of southWalls){ctx.moveTo(sx,sy);ctx.lineTo(ex,ey);}ctx.strokeStyle=b.type==='block'?'#958d7e':b.type==='uplex'?'#3e5f6b':'#766e63';ctx.lineWidth=2;ctx.stroke();}
+   if(southWalls.length){
+    const wall=b.type==='block'?'#8f8779':b.type==='uplex'?'#3e5f6b':b.type==='hyundai'?'#999284':'#76564d';
+    for(const [sx,sy,ex] of southWalls){const left=Math.min(sx,ex),width=Math.abs(ex-sx);rect(left,sy-4,width,4,wall);for(let wx=left+5;wx<left+width-3;wx+=13){rect(wx,sy-3,5,2,'#d9dfd1');rect(wx,sy-1,5,1,'#697579');}}
+    ctx.beginPath();for(const [sx,sy,ex,ey] of southWalls){ctx.moveTo(sx,sy);ctx.lineTo(ex,ey);}ctx.strokeStyle=wall;ctx.lineWidth=1;ctx.stroke();
+   }
    ctx.restore();
   }
   return;
