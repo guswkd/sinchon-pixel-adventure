@@ -7,7 +7,7 @@ const source=['assets/city-geography.js','maps.js','sprites.js','renderer.js','g
 function boot(saved={}){
  const nodes=new Map(),handlers={},documentHandlers={},storage={...saved};
  const context2d=new Proxy({measureText:t=>({width:t.length*8}),createImageData:(w,h)=>({data:new Uint8ClampedArray(w*h*4)}),putImageData(){}},{get:(o,k)=>o[k]||(()=>{})});
- function node(selector){if(!nodes.has(selector))nodes.set(selector,{hidden:['#map-overlay','#journal-overlay','#dialog'].includes(selector),width:selector==='#world-map'?480:208,height:selector==='#world-map'?460:176,style:{},dataset:{},textContent:'',tagName:'CANVAS',classList:{toggle(){}},handlers:{},addEventListener(k,fn){this.handlers[k]=fn},setPointerCapture(){},getContext(){return context2d;},setAttribute(k,v){this[k]=v},replaceChildren(){},append(){},focus(){},querySelector(){return node(selector+' .check')}});return nodes.get(selector)}
+ function node(selector){if(!nodes.has(selector))nodes.set(selector,{hidden:['#map-overlay','#journal-overlay','#dialog'].includes(selector),width:selector==='#world-map'?480:256,height:selector==='#world-map'?460:192,style:{},dataset:{},textContent:'',tagName:'CANVAS',classList:{toggle(){}},handlers:{},addEventListener(k,fn){this.handlers[k]=fn},setPointerCapture(){},getContext(){return context2d;},setAttribute(k,v){this[k]=v},replaceChildren(){},append(){},focus(){},querySelector(){return node(selector+' .check')}});return nodes.get(selector)}
  const directionButtons=['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].map(key=>{const button=node('[data-key="'+key+'"]');button.dataset.key=key;button.tagName='BUTTON';return button;});
  const sandbox={console,document:{querySelector:node,querySelectorAll:s=>s==='[data-key]'?directionButtons:[],createTextNode(){return {}},createElement(){return {}},addEventListener(k,fn){documentHandlers[k]=fn}},window:{addEventListener(k,fn){handlers[k]=fn}},localStorage:{getItem:k=>storage[k]||null,setItem:(k,v)=>storage[k]=v},setTimeout(){},clearTimeout(){},setInterval(){},clearInterval(){},requestAnimationFrame(){}};
  vm.createContext(sandbox);vm.runInContext(source,sandbox);
@@ -67,8 +67,8 @@ function assertPortalPair(app,fromZone,fromLabel,toZone,toLabel){
  assert.deepEqual(points.back,points.source,toLabel+' returns exactly to '+fromLabel);
 }
 let app=boot();
-app.run(`for(const [direction,rows] of Object.entries({...SPRITE_FRAMES,...Object.fromEntries(Object.entries(HERO_FRAMES).map(([k,v])=>["hero-"+k,v]))})){if(rows.length!==16)throw Error(direction+' wrong height');for(const row of rows)if(row.length!==16)throw Error(direction+' row '+row+' length '+row.length);}`);
-console.log('PASS sprite dimensions: three original 16×16 bases, mirrored left, walking variants');
+app.run(`for(const [direction,rows] of Object.entries({...SPRITE_FRAMES,...Object.fromEntries(Object.entries(HERO_FRAMES).map(([k,v])=>["hero-"+k,v]))})){const height=direction.startsWith('hero-')?20:16;if(rows.length!==height)throw Error(direction+' wrong height');for(const row of rows)if(row.length!==16)throw Error(direction+' row '+row+' length '+row.length);}`);
+console.log('PASS sprite dimensions: original 16×16 NPCs and detailed 16×20 hero, mirrored left, walking variants');
 for(const {number} of JSON.parse(app.run('JSON.stringify(SURFACE_EXITS.map(({number})=>({number})))')))
  assertPortalPair(app,'street',`신촌역 ${number}번 출구`,'station',`${number}번 출구`);
 assertPortalPair(app,'street','현대백화점 B2','mall','지상 · 현대백화점 ↑');
@@ -323,8 +323,8 @@ assert.equal(menuTest.nodes.get('#map-overlay').hidden,true);
 assert.equal(menuTest.nodes.get('#map-button')['aria-expanded'],'false');
 const before=menuTest.run('player.y');menuTest.key('ArrowUp');assert.equal(menuTest.run('player.y'),before);
 menuTest.key('Escape');assert.equal(menuTest.nodes.get('#journal-overlay').hidden,true);
-menuTest.nodes.get('#zoom-button').onclick();assert.equal(menuTest.run('canvas.width'),256);
-menuTest.nodes.get('#zoom-button').onclick();assert.equal(menuTest.run('canvas.width'),208);
+menuTest.nodes.get('#zoom-button').onclick();assert.equal(menuTest.run('canvas.width'),320);assert.equal(menuTest.run('canvas.height'),240);
+menuTest.nodes.get('#zoom-button').onclick();assert.equal(menuTest.run('canvas.width'),256);assert.equal(menuTest.run('canvas.height'),192);
 menuTest.run("for(const id of Object.keys(maps)){zone=id;player={...maps[id].spawn,dir:0,step:0};draw();renderMap();}");
 console.log('PASS journal pauses movement, Escape closes, map state resets, zoom toggles, all maps render');
 const motionTest=boot();

@@ -98,7 +98,7 @@ $('#reset').onclick=()=>{zone='street';player={...maps.street.spawn,dir:0,step:0
 document.querySelectorAll('[data-key]').forEach(b=>{b.addEventListener('pointerdown',e=>{e.preventDefault();b.setPointerCapture(e.pointerId);const k=b.dataset.key;if(k==='KeyE')interact();else if(k==='KeyM')toggleMap();else if(DIRECTIONS[k])beginDirection(k,'pointer:'+e.pointerId);});for(const event of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(event,e=>endDirection('pointer:'+e.pointerId));for(const event of ['contextmenu','selectstart'])b.addEventListener(event,e=>e.preventDefault());});
 function toggleJournal(){const open=$('#journal-overlay').hidden;$('#journal-overlay').hidden=!open;clearControls();if(open){$('#map-overlay').hidden=true;$('#map-button').setAttribute('aria-expanded','false');$('#close-journal').focus();}else canvas.focus();}
 $('#journal-button').onclick=toggleJournal;$('#close-journal').onclick=toggleJournal;
-$('#zoom-button').onclick=()=>{const wide=canvas.width===208;canvas.width=wide?256:208;canvas.height=wide?208:176;ctx.imageSmoothingEnabled=false;$('#zoom-button').textContent=wide?'확대 +':'축소 −';canvas.focus();};
+$('#zoom-button').onclick=()=>{const wide=canvas.width===256;canvas.width=wide?320:256;canvas.height=wide?240:192;ctx.imageSmoothingEnabled=false;$('#zoom-button').textContent=wide?'확대 +':'축소 −';canvas.focus();};
 if(document.fonts)document.fonts.load('10px Galmuri9');
 if(!walkable(maps[zone],player.x,player.y)){zone='street';Object.assign(player,nearestWalkable(maps.street,maps.street.spawn.x,maps.street.spawn.y));}
 priorPlace=placeAt(zone,player.x,player.y);updateUI();toast(saveNotice);requestAnimationFrame(frame);
