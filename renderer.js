@@ -191,7 +191,7 @@ function draw(){
  // Location lettering is on signs and facades; avoid a map-label layer over the field.
  if(zone==='street'&&m.campusGate){const g=m.campusGate;if(Math.abs(player.y-g.y)<14)sign('연세대학교',(g.x+.5)*T-cx-29,g.y*T-cy-22,58,'#e8e0c8');}
  const n=nearby();if(n&&!dialog&&$('#map-overlay').hidden&&$('#journal-overlay').hidden){const x=v.x*T-cx,y=v.y*T-cy;outline(x+3,y-13,10,10,'#fff8d8');txt('!',x+8,y-5,INK,10);}
- $('#hint').textContent=n?`${n.kind==='portal'?n.label:n.name} · E / Space`:'짧게 방향 전환 · 길게 걷기 · E 대화';
+ $('#hint').textContent=n?(n.kind==='portal'?`${n.label} · 밟으면 입장 · E / Space`:`${n.name} · E / Space`):'짧게 방향 전환 · 길게 걷기 · 계단은 밟으면 입장';
 }
 function renderMap(){
  const map=$('#world-map');map.width=Math.max(220,Math.round(map.clientWidth||480));map.height=Math.max(260,Math.round(map.clientHeight||460));

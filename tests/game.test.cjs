@@ -34,9 +34,35 @@ function approach(app,zoneId,kind,match){
  })()`);
 }
 function usePortal(app,zoneId,match){const portal=approach(app,zoneId,'portal',match);app.run('interact()');assert.equal(app.run('zone'),portal.target,portal.label);return portal;}
+function stepIntoPortal(app,zoneId,label){
+ const fixture=JSON.parse(app.run(`(()=>{
+  zone=${JSON.stringify(zoneId)};dialog=null;animation=null;clearControls();moveTimer=0;
+  $('#dialog').hidden=true;$('#map-overlay').hidden=true;$('#journal-overlay').hidden=true;
+  const p=maps[zone].portals.find(portal=>portal.label===${JSON.stringify(label)});
+  if(!p)throw Error('Missing portal '+${JSON.stringify(label)});
+  const entries=[];
+  for(let cell=0;cell<2;cell++)for(const [dx,dy,moveX,moveY,dir] of [[-1,0,1,0,2],[2,0,-1,0,1],[0,-1,0,1,0],[0,1,0,-1,3]]){
+   const x=p.x+cell+dx,y=p.y+dy;if(walkable(maps[zone],x,y))entries.push({x,y,moveX,moveY,dir});
+  }
+  const entry=entries[0];if(!entry)throw Error('No walkable stair approach '+p.label);
+  player={x:entry.x,y:entry.y,dir:entry.dir,step:0};
+  return JSON.stringify({...entry,startZone:zone,target:p.target,start:{x:entry.x,y:entry.y},destination:nearestWalkable(maps[p.target],p.tx,p.ty)});
+ })()`));
+ const key=['ArrowDown','ArrowLeft','ArrowRight','ArrowUp'][fixture.dir];
+ app.key(key);app.advance(140);app.release(key);assert.equal(app.run('zone'),fixture.startZone,label+' stays put during a direction tap');
+ assert.deepEqual(JSON.parse(app.run('JSON.stringify({x:player.x,y:player.y})')),fixture.start,label+' turn does not step onto stairs');
+ app.key(key);app.advance(150);
+ assert.equal(app.run('zone'),fixture.target,label+' enters on the first held step onto stairs');
+ assert.deepEqual(JSON.parse(app.run('JSON.stringify({x:player.x,y:player.y})')),fixture.destination,label+' uses the portal destination immediately');
+ app.release(key);
+}
 let app=boot();
 app.run(`for(const [direction,rows] of Object.entries({...SPRITE_FRAMES,...Object.fromEntries(Object.entries(HERO_FRAMES).map(([k,v])=>["hero-"+k,v]))})){if(rows.length!==16)throw Error(direction+' wrong height');for(const row of rows)if(row.length!==16)throw Error(direction+' row '+row+' length '+row.length);}`);
 console.log('PASS sprite dimensions: three original 16×16 bases, mirrored left, walking variants');
+const autoStairsTest=boot();
+for(const [zoneId,labels] of JSON.parse(autoStairsTest.run('JSON.stringify(Object.entries(maps).map(([id,m])=>[id,m.portals.map(p=>p.label)]))')))
+ for(const label of labels)stepIntoPortal(autoStairsTest,zoneId,label);
+console.log('PASS stairs: every portal auto-enters on the first held step; short direction taps stay put');
 // The periscope is in the plaza immediately north of U-PLEX. Inspecting it
 // must neither select a portal nor move the player.
 const landmarkTest=boot();
