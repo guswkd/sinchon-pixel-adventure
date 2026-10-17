@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import {createWorld,toWorld,inside,walkable,movePlayer,cameraVector,TurnWalkInput,cameraRegion,angleDelta} from '../prototype/world.mjs';
+import {createWorld,toWorld,inside,walkable,movePlayer,cameraVector,TurnWalkInput,RouteCamera,routeCameraPose,REGION_YAW,angleDelta} from '../prototype/world.mjs';
 const sandbox={};vm.createContext(sandbox);vm.runInContext(fs.readFileSync(new URL('../assets/city-geography.js',import.meta.url),'utf8')+';this.data=CITY_GEOGRAPHY;',sandbox);const world=createWorld(sandbox.data);
 assert.ok(walkable(world,world.spawn));assert.equal(world.exits.length,8);
 assert.ok(world.buildings.some(b=>b.type==='hyundai'));assert.ok(world.buildings.some(b=>b.type==='uplex'));
@@ -17,5 +17,24 @@ console.log('PASS camera-relative input: tap, hold, normalized diagonal, held-he
 const simple={bounds:{minX:-10,maxX:10,minZ:-10,maxZ:10},buildings:[{points:[{x:0,z:-2},{x:3,z:-2},{x:3,z:2},{x:0,z:2}]}]};
 const stopped=movePlayer(simple,{x:-3,z:0},{x:1,z:0},10);assert.ok(stopped.x<-.27,'swept collision prevents crossing a whole building');
 const slide=movePlayer(simple,{x:-.4,z:-1},{x:Math.SQRT1_2,z:Math.SQRT1_2},2);assert.ok(slide.x<0&&slide.z>-.2,'diagonal movement slides along a wall');
-assert.equal(inside({x:1,z:0},simple.buildings[0].points),true);assert.equal(cameraRegion(toWorld([232,445])),'plaza');assert.ok(Math.abs(angleDelta(Math.PI-.1,-Math.PI+.1)-.2)<1e-9);
+assert.equal(inside({x:1,z:0},simple.buildings[0].points),true);assert.equal(routeCameraPose(toWorld([232,445])).region,'plaza');assert.ok(Math.abs(angleDelta(Math.PI-.1,-Math.PI+.1)-.2)<1e-9);
 console.log('PASS continuous collision, corner sliding, region camera and shortest-angle rotation');
+
+// The first section must visibly rotate on approach and restore on the return.
+const rig=new RouteCamera(world.spawn),origin={...world.spawn};
+assert.ok(Math.abs(rig.yaw-REGION_YAW.station)<1e-9);
+let previous=rig.yaw;
+for(let z=6;z>=-6;z-=.1){rig.update({x:origin.x,z},1/60);assert.ok(rig.yaw>=previous-1e-9);assert.ok(rig.yaw-previous<.03,'no abrupt boundary snap');previous=rig.yaw;}
+for(let i=0;i<120;i++)rig.update({x:origin.x,z:-6},1/60);
+assert.ok(Math.abs(rig.yaw)<.001,'northward approach reaches the road view');
+for(let z=-6;z<=8;z+=.1)rig.update({x:origin.x,z},1/60);
+for(let i=0;i<120;i++)rig.update(origin,1/60);
+assert.ok(Math.abs(rig.yaw-REGION_YAW.station)<.001,'return trip restores station view');
+for(const z of [6,-5,-24,-32])assert.ok(Math.abs(routeCameraPose({z:z+.00001}).yaw-routeCameraPose({z:z-.00001}).yaw)<.00001,'boundary oscillation must not snap');
+rig.rotate(Math.PI/4,origin);assert.equal(rig.enabled,true,'looking around must not silently disable auto');
+rig.update(origin,1);assert.ok(rig.preview);assert.match(rig.status,/걸으면/);
+rig.update({x:origin.x+.8,z:origin.z},.1);assert.equal(rig.preview,null);assert.equal(rig.targetYaw,REGION_YAW.station);
+rig.toggle(origin);rig.rotate(Math.PI/4,origin);const manual=rig.targetYaw;rig.update({x:origin.x,z:-10},1);assert.equal(rig.targetYaw,manual,'explicit manual mode holds its angle');
+rig.toggle({x:origin.x,z:-10});rig.update({x:origin.x,z:-10},1);assert.equal(rig.targetYaw,0,'auto restoration works without a new region boundary crossing');
+rig.reset(origin);assert.equal(rig.enabled,true);assert.equal(rig.preview,null);assert.equal(rig.yaw,REGION_YAW.station);
+console.log('PASS automatic camera: forward/return, continuous boundaries, temporary manual look, explicit manual mode, auto restoration and reset');

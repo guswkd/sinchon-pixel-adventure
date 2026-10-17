@@ -51,6 +51,30 @@ export class TurnWalkInput{
   return {vector,facing:moving,walking:moving&&this.age>=.15};
  }
 }
-export function cameraRegion(p){return p.z<-24?'plaza':p.z<4?'yonsei':'station';}
-export const REGION_YAW={station:-.25,yonsei:0,plaza:.35};
 export function angleDelta(a,b){return Math.atan2(Math.sin(b-a),Math.cos(b-a));}
+export const REGION_YAW={station:-Math.PI*35/180,yonsei:0,plaza:Math.PI/6};
+const smooth=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);};
+// Position-based blends work in both travel directions and never depend on
+// catching a one-frame region-enter event. Stopping also stops route progress.
+export function routeCameraPose(p){
+ if(p.z>6)return {region:'station',label:'신촌역',yaw:REGION_YAW.station};
+ if(p.z>-5){const t=smooth((6-p.z)/11);return {region:'entrance',label:'연세로 진입',yaw:REGION_YAW.station*(1-t)};}
+ if(p.z>-24)return {region:'yonsei',label:'연세로',yaw:REGION_YAW.yonsei};
+ const t=smooth((-24-p.z)/8);return {region:'plaza',label:'빨잠 광장',yaw:REGION_YAW.plaza*t};
+}
+export class RouteCamera{
+ constructor(position){this.reset(position);}
+ reset(position){this.pose=routeCameraPose(position);this.yaw=this.targetYaw=this.pose.yaw;this.enabled=true;this.preview=null;}
+ rotate(delta,position){this.targetYaw+=delta;if(this.enabled)this.preview={...position};}
+ toggle(position){this.enabled=!this.enabled;this.preview=null;if(this.enabled)this.targetYaw=routeCameraPose(position).yaw;}
+ update(position,dt){
+  this.pose=routeCameraPose(position);
+  // Manual looking is temporary while auto is on. Explicitly switching auto
+  // off is the only way to keep a fixed manual view while walking.
+  if(this.preview&&Math.hypot(position.x-this.preview.x,position.z-this.preview.z)>=.7)this.preview=null;
+  if(this.enabled&&!this.preview)this.targetYaw=this.pose.yaw;
+  this.yaw+=angleDelta(this.yaw,this.targetYaw)*(1-Math.exp(-5*Math.max(0,dt)));
+ }
+ get turning(){return Math.abs(angleDelta(this.yaw,this.targetYaw))>Math.PI/180;}
+ get status(){if(!this.enabled)return '수동 시점 · 자동 버튼으로 복귀';if(this.preview)return '둘러보는 중 · 걸으면 자동 복귀';return '자동 · '+this.pose.label+(this.turning?' 방향으로 회전 중':' 시점');}
+}

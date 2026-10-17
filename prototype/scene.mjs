@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.min.js';
-import {createWorld,toWorld,inside,walkable,findFree,movePlayer,TurnWalkInput,cameraRegion,REGION_YAW,angleDelta,SCALE} from './world.mjs?v=1';
+import {createWorld,toWorld,inside,walkable,findFree,movePlayer,TurnWalkInput,RouteCamera,SCALE} from './world.mjs?v=2';
 const $=s=>document.querySelector(s),canvas=$('#scene');
 await document.fonts.ready;
 const world=createWorld(CITY_GEOGRAPHY),input=new TurnWalkInput();
@@ -7,8 +7,8 @@ let renderer;
 try{renderer=new THREE.WebGLRenderer({canvas,antialias:false,alpha:false,powerPreference:'low-power'});}catch(error){$('#loading').textContent='이 브라우저에서는 입체 화면을 켤 수 없어요. 위의 기존 신촌 모험으로 돌아갈 수 있어요.';throw error;}
 renderer.setPixelRatio(1);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.setClearColor('#b8c9ac');
 const scene=new THREE.Scene();scene.background=new THREE.Color('#bdcdae');scene.fog=new THREE.Fog('#bdcdae',95,150);
-scene.add(new THREE.HemisphereLight('#fff3d5','#8d9c8a',2.3));const sun=new THREE.DirectionalLight('#fff2ce',2.1);sun.position.set(-40,65,30);scene.add(sun);
-const camera=new THREE.OrthographicCamera(-24,24,16,-16,.1,200);let yaw=-.25,targetYaw=yaw,auto=true,zoomed=false,region='station';
+scene.add(new THREE.HemisphereLight('#fff3d5','#8d9c8a',1.3));const sun=new THREE.DirectionalLight('#fff2ce',1.0);sun.position.set(-40,65,30);scene.add(sun);
+const camera=new THREE.OrthographicCamera(-24,24,16,-16,.1,200);const view=new RouteCamera(world.spawn);let yaw=view.yaw,zoomed=false;
 let player={...world.spawn},facing={x:0,z:1},distance=0,walkClock=0,walking=false,dialog=false,mapOpen=false,last=0,noticeTimer=0;
 const visited=new Set(),buildingVisuals=[],actors=[],buildingMeshes=[];
 const follow=new THREE.Vector3(player.x,0,player.z-3);
@@ -86,12 +86,12 @@ function showNotice(text){$('#notice').textContent=text;$('#notice').classList.a
 function nearest(){return world.landmarks.map(p=>({...p,d:Math.hypot(player.x-p.x,player.z-p.z)})).sort((a,b)=>a.d-b.d)[0];}
 function inspect(){if(mapOpen){toggleMap(false);return;}if(dialog){closeDialog();return;}const p=nearest();if(p.d>5){showNotice('장소 가까이에서 살펴볼 수 있어요.');return;}input.clear();dialog=true;$('#speaker').textContent=p.name;$('#words').textContent=p.text;$('#speech').hidden=false;$('#close-speech').focus();}
 function closeDialog(){dialog=false;$('#speech').hidden=true;input.clear();canvas.focus();}
-function rotate(delta){targetYaw+=delta;auto=false;syncAuto();showNotice('시점을 돌렸어요. C로 자동 시점 복귀');}
-function syncAuto(){$('#auto').setAttribute('aria-pressed',String(auto));$('#auto b').textContent=auto?'켜짐':'꺼짐';}
-function toggleAuto(){auto=!auto;if(auto)targetYaw=REGION_YAW[cameraRegion(player)];syncAuto();canvas.focus();}
+function rotate(delta){view.rotate(delta,player);syncAuto();showNotice(view.enabled?'둘러본 뒤 걸으면 자동 시점으로 돌아와요.':'수동 시점 · C를 누르면 자동으로 돌아와요.');}
+function syncAuto(){$('#auto').setAttribute('aria-pressed',String(view.enabled));$('#auto b').textContent=view.enabled?'켜짐':'꺼짐';}
+function toggleAuto(){view.toggle(player);syncAuto();canvas.focus();}
 function toggleZoom(){zoomed=!zoomed;$('#zoom').innerHTML=(zoomed?'멀리 보기':'가까이 보기')+' <kbd>Z</kbd>';resize();canvas.focus();}
 function toggleMap(open=!mapOpen){mapOpen=open;input.clear();$('#map-overlay').hidden=!open;if(open){drawMap();$('#close-map').focus();}else canvas.focus();}
-function home(){if(dialog)closeDialog();if(mapOpen)toggleMap(false);player={...world.spawn};input.clear();yaw=targetYaw=-.25;auto=true;region='station';syncAuto();follow.set(player.x,0,player.z-3);showNotice('신촌역 앞으로 돌아왔어요.');canvas.focus();}
+function home(){if(dialog)closeDialog();if(mapOpen)toggleMap(false);player={...world.spawn};input.clear();view.reset(player);yaw=view.yaw;syncAuto();follow.set(player.x,0,player.z-3);showNotice('신촌역 앞으로 돌아왔어요.');canvas.focus();}
 const dirs={ArrowUp:[0,-1],KeyW:[0,-1],ArrowDown:[0,1],KeyS:[0,1],ArrowLeft:[-1,0],KeyA:[-1,0],ArrowRight:[1,0],KeyD:[1,0]};let running=false;
 window.addEventListener('keydown',e=>{if(e.ctrlKey||e.metaKey||e.altKey||['INPUT','TEXTAREA','SELECT','A'].includes(e.target?.tagName))return;const code=e.code;if(!dirs[code]&&!['KeyQ','KeyR','KeyC','KeyZ','KeyM','KeyE','Space','Enter','Escape','ShiftLeft','ShiftRight'].includes(code))return;e.preventDefault();if(code.startsWith('Shift')){running=true;return;}if(dirs[code]){if(!dialog&&!mapOpen&&!e.repeat)input.press(code,...dirs[code]);return;}if(e.repeat)return;if(code==='Escape'){if(dialog)closeDialog();if(mapOpen)toggleMap(false);return;}if(['Space','Enter','KeyE'].includes(code)){inspect();return;}if(code==='KeyM'){toggleMap();return;}if(dialog||mapOpen)return;if(code==='KeyQ')rotate(-Math.PI/4);if(code==='KeyR')rotate(Math.PI/4);if(code==='KeyC')toggleAuto();if(code==='KeyZ')toggleZoom();},{capture:true});
 window.addEventListener('keyup',e=>{input.release(e.code);if(e.code.startsWith('Shift'))running=false;});
@@ -99,7 +99,7 @@ function clear(){input.clear();running=false;}window.addEventListener('blur',cle
 const touchDirs={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
 for(const b of document.querySelectorAll('[data-dir]')){b.addEventListener('pointerdown',e=>{e.preventDefault();if(dialog||mapOpen)return;b.setPointerCapture(e.pointerId);input.press('pointer:'+e.pointerId,...touchDirs[b.dataset.dir]);});for(const type of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(type,e=>{e.preventDefault();input.release('pointer:'+e.pointerId);});b.addEventListener('contextmenu',e=>e.preventDefault());}
 $('#rotate-left').onclick=()=>{rotate(-Math.PI/4);canvas.focus();};$('#rotate-right').onclick=()=>{rotate(Math.PI/4);canvas.focus();};$('#auto').onclick=toggleAuto;$('#zoom').onclick=toggleZoom;$('#inspect').onclick=inspect;$('#touch-inspect').onclick=inspect;$('#close-speech').onclick=closeDialog;$('#map-button').onclick=()=>toggleMap();$('#close-map').onclick=()=>toggleMap(false);$('#home').onclick=home;canvas.addEventListener('pointerdown',()=>canvas.focus());
-function resize(){const rect=canvas.parentElement.getBoundingClientRect(),aspect=rect.width/rect.height;const height=rect.width<650?288:320,width=Math.round(height*aspect);renderer.setSize(width,height,false);const view=zoomed?25:35;camera.left=-view*aspect/2;camera.right=view*aspect/2;camera.top=view/2;camera.bottom=-view/2;camera.updateProjectionMatrix();if(mapOpen)drawMap();}
+function resize(){const rect=canvas.parentElement.getBoundingClientRect(),aspect=rect.width/rect.height;const height=rect.width<650?288:320,width=Math.round(height*aspect);renderer.setSize(width,height,false);const view=zoomed?24:32;camera.left=-view*aspect/2;camera.right=view*aspect/2;camera.top=view/2;camera.bottom=-view/2;camera.updateProjectionMatrix();if(mapOpen)drawMap();}
 new ResizeObserver(resize).observe(canvas.parentElement);resize();
 function drawMap(){const c=$('#mini').getContext('2d'),w=360,h=420,b=world.bounds,s=Math.min((w-36)/(b.maxX-b.minX),(h-68)/(b.maxZ-b.minZ)),ox=(w-(b.maxX-b.minX)*s)/2,oy=34;const p=q=>({x:ox+(q.x-b.minX)*s,y:oy+(q.z-b.minZ)*s});c.fillStyle='#f3ecd9';c.fillRect(0,0,w,h);c.lineJoin=c.lineCap='round';
  for(const r of world.roads.filter(r=>!r.pedestrian)){c.strokeStyle=r.name==='연세로'?'#6e987f':'#b1b7aa';c.lineWidth=Math.max(2,r.width*s);c.beginPath();r.points.forEach((q,i)=>{const a=p(q);i?c.lineTo(a.x,a.y):c.moveTo(a.x,a.y);});c.stroke();}
@@ -109,13 +109,12 @@ function drawMap(){const c=$('#mini').getContext('2d'),w=360,h=420,b=world.bound
 const raycaster=new THREE.Raycaster(),direction=new THREE.Vector3();let occlusionFrame=0;
 function fadeOccluders(){direction.set(player.x,.9,player.z).sub(camera.position);const length=direction.length();raycaster.set(camera.position,direction.normalize());raycaster.far=length-.4;const hit=new Set(raycaster.intersectObjects(buildingMeshes,false).map(h=>h.object));
  for(const b of buildingVisuals){const fading=hit.has(b.mesh);for(const m of b.mats){m.transparent=fading;m.opacity=fading?.23:1;m.depthWrite=!fading;}b.rim.visible=!fading;if(b.sign)b.sign.visible=!fading;for(const d of b.details)d.visible=!fading;}}
-function updateHUD(){const near=nearest();const location=player.z<-25?'U-PLEX · 빨잠 광장':player.x<-5&&player.z<9?'현대백화점 · 연결 골목':'신촌역 · 연세로';$('#place').textContent=location;$('#steps').textContent=Math.round(distance/SCALE*1.5)+' m 산책';$('#hint').textContent=near.d<5?near.name+' · Space로 살펴보기':'짧게 방향 · 길게 걷기 · Q / R 시점 회전';$('#north').style.transform=`rotate(${-yaw*180/Math.PI}deg)`;
+function updateHUD(){const near=nearest();const location=player.z<-25?'U-PLEX · 빨잠 광장':player.x<-5&&player.z<9?'현대백화점 · 연결 골목':'신촌역 · 연세로';$('#place').textContent=location;$('#camera-status').textContent=view.status;$('#steps').textContent=Math.round(distance/SCALE*1.5)+' m 산책';$('#hint').textContent=near.d<5?near.name+' · Space로 살펴보기':'짧게 방향 · 길게 걷기 · Q / R 시점 회전';$('#north').style.transform=`rotate(${-yaw*180/Math.PI}deg)`;
  for(const p of world.landmarks)if(Math.hypot(player.x-p.x,player.z-p.z)<5&&!visited.has(p.id)){visited.add(p.id);document.querySelector(`[data-stop="${p.id}"]`).classList.add('visited');showNotice(visited.size===3?'세 장소를 모두 걸었어요. 다른 시점으로도 둘러보세요.':p.name+'에 도착했어요.');}}
 function frame(ms){const dt=Math.min((ms-last)/1000||0,.05);last=ms;
  if(!dialog&&!mapOpen){const control=input.update(dt,yaw);if(control.facing)facing=control.vector;walking=false;if(control.walking){const next=movePlayer(world,player,control.vector,(running?6.8:4.1)*dt),d=Math.hypot(next.x-player.x,next.z-player.z);walking=d>.0001;distance+=d;player=next;if(walking)walkClock+=dt;}
-  const nextRegion=cameraRegion(player);if(auto&&nextRegion!==region){region=nextRegion;targetYaw=REGION_YAW[region];}
  }else walking=false;
- yaw+=angleDelta(yaw,targetYaw)*Math.min(1,dt*3.1);
+ view.update(player,dt);yaw=view.yaw;
  const look=new THREE.Vector3(player.x-Math.sin(yaw)*3,0,player.z-Math.cos(yaw)*3);follow.lerp(look,Math.min(1,dt*9));camera.position.set(follow.x+Math.sin(yaw)*42,38,follow.z+Math.cos(yaw)*42);camera.lookAt(follow.x,0,follow.z);
  const screenX=facing.x*Math.cos(yaw)-facing.z*Math.sin(yaw),screenZ=facing.x*Math.sin(yaw)+facing.z*Math.cos(yaw),dir=Math.abs(screenX)>Math.abs(screenZ)?(screenX>0?2:1):(screenZ>0?0:3),step=walking?(Math.floor(walkClock*7)%2+1):0;
  setActor(hero,player,dir,step);for(const a of actors.slice(1)){const d=Math.abs(Math.sin(yaw))>.7?(Math.sin(yaw)>0?1:2):0;setActor(a,a.pos,d);}
