@@ -44,3 +44,24 @@ for filename, feature_id in [('hyundai.osm', '19696463'), ('uplex.osm', '3563925
     actual = {edge(a, b) for a, b in zip(points, points[1:])}
     assert actual == expected, 'missing boundary or artificial closing diagonal: '+filename
 print('PASS: Hyundai and U-PLEX boundaries match every live survey edge, without artificial diagonals')
+
+underground=json.loads((ROOT/'assets/underground-geography.js').read_text().split('const UNDERGROUND_GEOGRAPHY=')[1].rstrip(';\n'))
+live=ET.parse(AUDIT/'underground.osm').getroot()
+nodes={n.get('id'):n for n in live.findall('node')}
+ways={w.get('id'):w for w in live.findall('way')}
+for group, corridors in underground['corridors'].items():
+    for corridor in corridors:
+        refs=[n.get('ref') for n in ways[corridor['id']].findall('nd')]
+        assert corridor['nodes']==refs, 'lost real corridor bend'
+        for ref, (x,y) in zip(refs,corridor['points']):
+            n=nodes[ref]
+            east=(float(n.get('lon'))-126.932)*111320*math.cos(math.radians(37.558))-72
+            south=(37.563-float(n.get('lat')))*111320
+            assert math.hypot(east-x*1.5,south-y*1.5)<.002
+# Independent stair-way membership: lower and upper endpoints may not be collapsed.
+for e,way_id in zip(underground['exits'],[1436163438,1436163442,1436159555,1436159560,1436179998,1436179995,1436170975,1436170958]):
+    refs=[n.get('ref') for n in ways[str(way_id)].findall('nd')]
+    assert {e['surface'],e['landing']}=={refs[0],refs[-1]}
+    assert underground['nodes'][e['surface']]['point']!=underground['nodes'][e['landing']]['point']
+assert all(int(w['id']) not in [1436179980,1436179981,1436179984] for ws in underground['corridors'].values() for w in ws), '4F bridge must not become an underground path'
+print('PASS: 19 underground paths preserve every surveyed bend; 8 distinct stair endpoints; no 4F bridge mixed into underground')

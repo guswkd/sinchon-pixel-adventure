@@ -22,7 +22,7 @@ const SPRITE_FRAMES={
  ]
 };
 const SPRITE_PALETTES={
- hero:{K:'#263746',Y:'#e85028',W:'#fff5df',H:'#4b3845',S:'#efbc8d',R:'#cf4846',B:'#ba895b',P:'#3d5d83',F:'#3a3d49',J:'#d7544c',C:'#eee0bd'},
+ hero:{K:'#263746',Y:'#e85028',W:'#fff5df',H:'#4b3845',S:'#efbc8d',R:'#cf4846',B:'#ba895b',P:'#3d5d83',F:'#3a3d49',J:'#467a91',C:'#f5d693'},
  guide:{K:'#303042',Y:'#749569',W:'#e8e4bb',H:'#564239',S:'#e7b784',R:'#748d68',B:'#bf975c',P:'#46536b',F:'#33343e'},
  officer:{K:'#283043',Y:'#54739b',W:'#ece6c1',H:'#30303c',S:'#e8bd92',R:'#597698',B:'#8393a5',P:'#36455b',F:'#292d3a'},
  student:{K:'#303044',Y:'#474253',W:'#b2c1da',H:'#393242',S:'#edc897',R:'#6484b1',B:'#cf9a58',P:'#42465c',F:'#30303e'},
@@ -31,25 +31,30 @@ const SPRITE_PALETTES={
  clerk:{K:'#313746',Y:'#4c4245',W:'#ecebd7',H:'#4c4245',S:'#dfb083',R:'#668675',B:'#b7b7a0',P:'#414d51',F:'#30303d'},
  baker:{K:'#3b333b',Y:'#ece3c2',W:'#fff5d7',H:'#675047',S:'#e5b988',R:'#b78a5a',B:'#d6ba87',P:'#635543',F:'#3b333b'}
 };
-const heroRow=s=>'.'.repeat(Math.floor((16-s.length)/2))+s+'.'.repeat(16-s.length-Math.floor((16-s.length)/2));
+// Hand-authored 16×20 field sprite. Dark eyes, clear hands and a compact cap.
+// Every view shares the same feet baseline; side views are not recentered row by row.
 const HERO_FRAMES={
  down:[
-  'KKKK','KKRRRRKK','KRRRRRRRRK','KRRWWRRRRK','KKRRRRRRKK','KKKKKKKKKKKKKK',
-  'KHHSSSSHHK','KHSSSSSSHK','KSSWSSWSSK','KSSSSSSSSK','KSSKKSSK',
-  'KKJJJJJJKK','KJJJJCCJJJJJK','KJJJJCCJJJJJK','KJJJJJJJJJJJK','KJJJJJJJJJJJK',
-  'KPPPPPPPPK','KPPK..KPPK','KPPK..KPPK','KKFF....FFKK'
- ].map(heroRow),
+  '.....KKKKKK.....','....KRRRRRRK....','...KRRRRRRRRK...','...KRRWWRRRRK...',
+  '...KRRRRRRRRKK..','...KKWWWWWWWWK..','....KHHSSSHK....','....KSKSSKSK....',
+  '....KSSSSSSK....','.....KSSSSK.....','....KJJCCJJK....','...KJJKCCKJJK...',
+  '...KSJKCCKJSK...','...KSSJJJJSSK...','....KJJJJJJK....','.....KPPPPK.....',
+  '....KPPKKPPK....','....KPP..PPK....','....KFF..FFK....','....KKK..KKK....'
+ ],
  up:[
-  'KKKK','KKRRRRKK','KRRRRRRRRK','KRRWWRRRRK','KRRRRRRRRK','KKKKKKKKKKKKKK',
-  'KHHHHHHHHK','KHHBBBBHHK','KBBJJJJBBK','KBBJJJJBBK','KBBJCCJBBK','KBBJCCJBBK',
-  'KJJJJJJJJK','KJJJJJJJJK','KJJJJJJJJK','KPPPPPPPPK','KPPPPPPPPK',
-  'KPPK..KPPK','KPPK..KPPK','KKFF....FFKK'
- ].map(heroRow),
+  '.....KKKKKK.....','....KRRRRRRK....','...KRRRRRRRRK...','...KRRWWRRRRK...',
+  '...KRRRRRRRRK...','....KRRRRRRK....','....KHHHHHHK....','....KHHHHHHK....',
+  '.....KHHHHK.....','....KJJJJJJK....','...KJBBBBBBJK...','...KJBCCCCBJK...',
+  '...KSBCCCCBSK...','...KSBCCCCBSK...','....KBBBBBBK....','.....KPPPPK.....',
+  '....KPPKKPPK....','....KPP..PPK....','....KFF..FFK....','....KKK..KKK....'
+ ],
  right:[
-  'KKKK','KKRRRRK','KRRRRRRK','KRRRWWRRK','KKRRRRRRKK','KKKKKKKKKKKK',
-  'KSSSSSK','KSSWSSK','KSSSSSK','KSSSSSK','KJJJKK','KJJJCCJKK','KJJJCCJKK','KJJJJJKK',
-  'KPPPPK','KPPKPPK','KPPKPPK','KPPK','KPPK','KKF..FKK'
- ].map(heroRow)
+  '....KKKKKK......','...KRRRRRRK.....','...KRRWWRRRK....','...KRRRRRRRKK...',
+  '...KKWWWWWWWWK..','....KHHSSSK.....','....KHHSSKSK....','....KHSSSSSK....',
+  '.....KSSSSK.....','....KBBKJJK.....','...KBBBKCCJK....','...KBBBJKJJK....',
+  '...KBBBKSSJK....','....KBBKSSJK....','.....KKJJJK.....','.....KPPPPK.....',
+  '.....KPPPPK.....','.....KPPKPK.....','.....KFFKFK.....','.....KKKKKK.....'
+ ]
 };
 function spritePixels(style='hero',dir=0,step=0){
  const base=(style==='hero'?HERO_FRAMES:SPRITE_FRAMES)[dir===3?'up':dir===1||dir===2?'right':'down'];
@@ -63,8 +68,8 @@ function spritePixels(style='hero',dir=0,step=0){
  if(step){
   const alt=step===1;
   if(rows.length===20){
-   if(dir===1||dir===2){rows[18]=(alt?'....KPPKPPK.....':'.....KPPKPPK....').split('');rows[19]=(alt?'...KFFK.KFFK....':'....KFFK.KFFK...').split('');}
-   else{rows[18]=(alt?'...KFFKKPPPK....':'....KPPPKKFFK...').split('');rows[19]=(alt?'....KK...KFFK...':'...KFFK...KK....').split('');}
+   if(dir===1||dir===2){rows[17]=(alt?'....KPP.KPPK....':'.....KPPKPPK....').split('');rows[18]=(alt?'...KFFK..KFFK...':'.....KFFKFFK....').split('');rows[19]=(alt?'...KKK....KKK...':'.....KKKKKK.....').split('');}
+   else{rows[17]=(alt?'....KFFKKPPK....':'....KPPKKFFK....').split('');rows[18]=(alt?'....KKK.KFFK....':'....KFFK.KKK....').split('');rows[19]=(alt?'........KKK.....':'.....KKK........').split('');}
   }else if(dir===1||dir===2){rows[14]=(alt?'....KPPKPPK.....':'.....KPPKPPK....').split('');rows[15]=(alt?'...KFFK.KFFK....':'....KFFK.KFFK...').split('');}
   else{rows[14]=(alt?'...KFFKKPPPK....':'....KPPPKKFFK...').split('');rows[15]=(alt?'....KK...KFFK...':'...KFFK...KK....').split('');}
  }

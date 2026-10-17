@@ -3,7 +3,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const vm=require('node:vm');
 const root=path.resolve(__dirname,'..');
-const source=['assets/city-geography.js','maps.js','sprites.js','renderer.js','game.js'].map(f=>fs.readFileSync(path.join(root,f),'utf8')).join('\n');
+const source=['assets/city-geography.js','assets/underground-geography.js','maps.js','sprites.js','renderer.js','game.js'].map(f=>fs.readFileSync(path.join(root,f),'utf8')).join('\n');
 function boot(saved={}){
  const nodes=new Map(),handlers={},documentHandlers={},storage={...saved};
  const context2d=new Proxy({measureText:t=>({width:t.length*8}),createImageData:(w,h)=>({data:new Uint8ClampedArray(w*h*4)}),putImageData(){}},{get:(o,k)=>o[k]||(()=>{})});
@@ -36,7 +36,7 @@ function approach(app,zoneId,kind,match){
 function usePortal(app,zoneId,match){const portal=approach(app,zoneId,'portal',match);app.run('interact()');assert.equal(app.run('zone'),portal.target,portal.label);return portal;}
 function stepIntoPortal(app,zoneId,label){
  const fixture=JSON.parse(app.run(`(()=>{
-  zone=${JSON.stringify(zoneId)};dialog=null;animation=null;clearControls();moveTimer=0;
+  zone=${JSON.stringify(zoneId)};dialog=null;animation=null;clearControls();moveTimer=0;arrivalPortal=null;
   $('#dialog').hidden=true;$('#map-overlay').hidden=true;$('#journal-overlay').hidden=true;
   const p=maps[zone].portals.find(portal=>portal.label===${JSON.stringify(label)});
   if(!p)throw Error('Missing portal '+${JSON.stringify(label)});
@@ -71,14 +71,23 @@ app.run(`for(const [direction,rows] of Object.entries({...SPRITE_FRAMES,...Objec
 console.log('PASS sprite dimensions: original 16×16 NPCs and detailed 16×20 hero, mirrored left, walking variants');
 for(const {number} of JSON.parse(app.run('JSON.stringify(SURFACE_EXITS.map(({number})=>({number})))')))
  assertPortalPair(app,'street',`신촌역 ${number}번 출구`,'station',`${number}번 출구`);
-assertPortalPair(app,'street','현대백화점 B2','mall','지상 · 현대백화점 ↑');
-assertPortalPair(app,'street','U-PLEX 지하통로 ↓','mall','지상 · U-PLEX ↑');
-assertPortalPair(app,'station','현대백화점 B2 ←','mall','신촌역 →');
+assertPortalPair(app,'street','현대백화점 앞 지하통로 ↓','station','현대백화점 앞 지상 ↑');
+assertPortalPair(app,'street','U-PLEX 1F 입구','uplex','U-PLEX 광장 출입문');
+assertPortalPair(app,'uplex','B2 연결통로 ↓','mall','U-PLEX 1F ↑');
+assertPortalPair(app,'street','빨잠 출구 ↓','mall','빨잠 광장 ↑');
+assertPortalPair(app,'station','현대백화점 B2 연결','mall','신촌역 연결');
 assertPortalPair(app,'mall','B1 식품관 ↑','store','B2 연결층 ↓');
 console.log('PASS portal alignment: every numbered exit and indoor entrance returns to its matching stair tile');
 const autoStairsTest=boot();
 for(const [zoneId,labels] of JSON.parse(autoStairsTest.run('JSON.stringify(Object.entries(maps).map(([id,m])=>[id,m.portals.map(p=>p.label)]))')))
  for(const label of labels)stepIntoPortal(autoStairsTest,zoneId,label);
+const arrivalTest=boot();
+usePortal(arrivalTest,'street',{exit:2});
+const arrivalZone=arrivalTest.run('zone');
+arrivalTest.run('move(1,0,2)');
+assert.equal(arrivalTest.run('zone'),arrivalZone,'walking sideways on a two-tile arrival stair must not bounce back');
+arrivalTest.run('move(0,1,0)');
+assert.equal(arrivalTest.run('arrivalPortal'),null,'leaving the landing re-arms normal stair entry');
 console.log('PASS stairs: every portal auto-enters on the first held step; short direction taps stay put');
 // The periscope is in the plaza immediately north of U-PLEX. Inspecting it
 // must neither select a portal nor move the player.
@@ -86,7 +95,7 @@ const landmarkTest=boot();
 const periscope=approach(landmarkTest,'street','prop',{name:'빨간 잠망경'});
 const uplexBuilding=landmarkTest.run(`maps.street.buildings.find(b=>b.type==='uplex')`);
 assert.ok(periscope.x>=uplexBuilding.x&&periscope.x<uplexBuilding.x+uplexBuilding.w&&periscope.y<uplexBuilding.y,'periscope is immediately above U-PLEX footprint');
-const entrance=landmarkTest.run(`maps.street.portals.find(p=>p.label==='U-PLEX 지하통로 ↓')`);
+const entrance=landmarkTest.run(`maps.street.portals.find(p=>p.label==='빨잠 출구 ↓')`);
 assert.ok(Math.abs(entrance.x-periscope.x)+Math.abs(entrance.y-periscope.y)<=16,'B2 entrance is beside the periscope');
 const location=landmarkTest.run('JSON.stringify({zone,x:player.x,y:player.y})');
 landmarkTest.key('KeyE','ㄷ',{isComposing:true});
@@ -96,11 +105,11 @@ assert.equal(landmarkTest.run('JSON.stringify({zone,x:player.x,y:player.y})'),lo
 landmarkTest.key('Space',' ');landmarkTest.key('KeyE','e');
 assert.equal(landmarkTest.run('dialog'),null,'the landmark dialogue closes');
 assert.equal(landmarkTest.run('JSON.stringify({zone,x:player.x,y:player.y})'),location,'closing description does not teleport');
-usePortal(landmarkTest,'street',{label:'U-PLEX 지하통로 ↓'});
+usePortal(landmarkTest,'street',{label:'빨잠 출구 ↓'});
 assert.equal(landmarkTest.run('zone'),'mall','U-PLEX entrance enters B2');
-assert.equal(landmarkTest.run('walkable(maps.mall,31,10)'),true,'marked underground corridor is walkable');
+assert.equal(landmarkTest.run("maps.street.portals.some(p=>p.x===LANDMARKS.hyundaiEntrance.x&&p.y===LANDMARKS.hyundaiEntrance.y)"),false,'underground department-store doorway is never a ground stair');
 const b2Route=landmarkTest.run(`(()=>{
- const m=maps.mall,start=m.portals.find(p=>p.target==='street'&&p.sign==='U-PLEX ↑'),exit=m.portals.find(p=>p.target==='station');
+ const m=maps.mall,start=m.portals.find(p=>p.target==='street'&&p.sign==='빨잠 ↑'),exit=m.portals.find(p=>p.target==='station');
  const q=[[start.x,start.y]],prev=new Map([[start.x+','+start.y,null]]);
  for(let i=0;i<q.length;i++)for(const [dx,dy] of [[0,1],[0,-1],[1,0],[-1,0]]){const x=q[i][0]+dx,y=q[i][1]+dy,k=x+','+y;if(!prev.has(k)&&walkable(m,x,y)){prev.set(k,q[i][0]+','+q[i][1]);q.push([x,y]);}}
  const end=q.find(([x,y])=>Math.abs(x-exit.x)+Math.abs(y-exit.y)<=2);if(!end)return false;
@@ -108,7 +117,7 @@ const b2Route=landmarkTest.run(`(()=>{
  return hasPassage;
 })()`);
 assert.equal(b2Route,true,'continuous marked indoor passage links U-PLEX to station');
-usePortal(landmarkTest,'mall',{label:'신촌역 →'});
+usePortal(landmarkTest,'mall',{label:'신촌역 연결'});
 assert.equal(landmarkTest.run('zone'),'station','B2 corridor connects to Sinchon Station');
 console.log('PASS U-PLEX: periscope above footprint, adjacent B2 entrance, walkable B2 passage to station');
 app.run(`draw();renderMap();`);
@@ -246,15 +255,21 @@ const reference=JSON.parse(fs.readFileSync(path.join(root,'reference/map-data.js
 const geographic=JSON.parse(app.run('JSON.stringify(CITY_GEOGRAPHY)'));
 assert.equal(geographic.metresPerTile,1.5);
 assert.deepEqual(geographic.exits.map(({number,x,y})=>({number,x,y})),reference.exits.map(({number,x,y})=>({number,x:Math.round((x-14)*4),y:Math.round((y-2)*4)})),'exit positions are rounded only at the final 1.5 m grid');
-const sourceExitData=geographic.exits,stationExitPositions=JSON.parse(app.run('JSON.stringify(exitInside)'));
-const minExitX=Math.min(...sourceExitData.map(e=>e.x)),minExitY=Math.min(...sourceExitData.map(e=>e.y));
-for(const e of sourceExitData)assert.deepEqual(stationExitPositions[e.number],[Math.round(10+(e.x-minExitX)*.375),Math.round(8+(e.y-minExitY)*.375)],'station exit '+e.number+' follows its real surface direction and spacing');
+const stationExitPositions=JSON.parse(app.run('JSON.stringify(exitInside)'));
+const underground=JSON.parse(app.run('JSON.stringify(UNDERGROUND_GEOGRAPHY)'));
+for(const e of underground.exits){
+ const [x,y]=underground.nodes[e.landing].point;
+ assert.deepEqual(stationExitPositions[e.number],[Math.round(x-175),Math.round(y-530)],'exit '+e.number+' uses its surveyed lower landing, without shrinking the station');
+}
+assert.equal(app.run('maps.station.metresPerTile'),1.5);
+assert.equal(app.run('maps.mall.metresPerTile'),1.5);
+assert.ok(app.run('maps.station.w>100&&maps.mall.h>100'),'underground routes are no longer compressed into tiny rooms');
+assert.equal(app.run('maps.station.tiles.flat().includes(9)'),false,'no invented tracks cross the public concourse');
 const gate=reference.pois.find(p=>p.name==='연세대 정문');
 assert.deepEqual(JSON.parse(app.run('JSON.stringify(maps.street.campusGate)')),{x:Math.round((gate.x-14)*4),y:Math.round((gate.y-2)*4)});
 for(const [name,expression] of [
  ['빨잠 (빨간 잠망경)',"maps.street.props.find(p=>p.name==='빨간 잠망경')"],
- ['신촌역 빨잠 출구',"maps.street.portals.find(p=>p.label==='U-PLEX 지하통로 ↓')"],
- ['현대백화점 신촌역 지하통로',"maps.street.portals.find(p=>p.label==='현대백화점 B2')"]
+ ['신촌역 빨잠 출구',"maps.street.portals.find(p=>p.label==='빨잠 출구 ↓')"]
 ]){
  const p=geographic.pois.find(p=>p.name===name),actual=app.run(expression);
  assert.deepEqual({x:actual.x,y:actual.y},{x:p.x,y:p.y},name+' uses its surveyed point');
@@ -314,6 +329,9 @@ const invalid=boot({'sinchon-walk-v4':JSON.stringify({zone:'street',x:-1,y:10000
 const correctedSave=boot({'sinchon-walk-v5':JSON.stringify({zone:'street',x:0,y:0,bag:['소금빵'],visited:['street','mall']})});
 assert.equal(correctedSave.run('walkable(maps[zone],player.x,player.y)'),true);
 assert.equal(correctedSave.run("bag.includes('소금빵')&&visited.has('mall')"),true,'map corrections relocate blocked saves without losing gifts or stamps');
+const oldIndoor=boot({'sinchon-walk-v5':JSON.stringify({zone:'mall',x:32,y:14,bag:['소금빵'],visited:['mall']})});
+assert.equal(oldIndoor.run('player.x===maps.mall.spawn.x&&player.y===maps.mall.spawn.y'),true,'old indoor layout saves relocate to the new entrance');
+assert.equal(oldIndoor.run("bag.includes('소금빵')"),true);
 console.log('PASS save/load, invalid save recovery, v1–v4 migration preserving gifts and stamps');
 const exitsTest=boot();
 for(const {number} of reference.exits){
@@ -322,11 +340,10 @@ for(const {number} of reference.exits){
  assert.equal(exitsTest.run('player.x'),interior.tx);assert.equal(exitsTest.run('player.y'),interior.ty);
  assert.deepEqual([interior.tx,interior.ty],[surface.x,surface.y],'Exit '+number+' returns to the exact same surface stair tile');
 }
-for(const [surfaceLabel,returnLabel] of [['현대백화점 B2','지상 · 현대백화점 ↑'],['U-PLEX 지하통로 ↓','지상 · U-PLEX ↑']]){
+for(const [surfaceLabel,target,returnLabel] of [['현대백화점 앞 지하통로 ↓','station','현대백화점 앞 지상 ↑'],['빨잠 출구 ↓','mall','빨잠 광장 ↑'],['U-PLEX 1F 입구','uplex','U-PLEX 광장 출입문']]){
  const surface=usePortal(exitsTest,'street',{label:surfaceLabel});
  assert.equal(exitsTest.run('player.x'),surface.tx);assert.equal(exitsTest.run('player.y'),surface.ty);
- const interior=usePortal(exitsTest,'mall',{label:returnLabel});
- assert.equal(exitsTest.run('player.x'),interior.tx);assert.equal(exitsTest.run('player.y'),interior.ty);
+ const interior=usePortal(exitsTest,target,{label:returnLabel});
  assert.deepEqual([interior.tx,interior.ty],[surface.x,surface.y],surfaceLabel+' returns to its exact own entrance');
 }
 console.log('PASS eight numbered exit round-trips; Hyundai and U-PLEX each return to their own surface entrance');

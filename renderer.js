@@ -13,6 +13,7 @@ function drawTile(m,t,x,y,ix,iy){
  if(t===4||t===5){rect(x,y,16,16,t===4?'#c5d0c8':'#efdfb6');rect(x,y+15,16,1,t===4?'#9ead9f':'#d0bf96');rect(x+15,y,1,16,t===4?'#9ead9f':'#d0bf96');if((ix+iy)%3===0)rect(x+3,y+3,2,2,t===4?'#d7dfd3':'#f8edce');return;}
  if(t===10){rect(x,y,16,16,'#d8d0bd');rect(x+1,y+1,14,14,'#eee7d8');rect(x+1,y+14,14,1,'#c2b8a5');if((ix+iy)%3===0)rect(x+7,y+6,2,4,'#b9a66c');return;}
  if(t===6){rect(x,y,16,16,'#344b58');rect(x+1,y+1,14,14,'#9a967f');for(let i=0;i<4;i++){rect(x+2,y+2+i*3,12,1,'#e9dec0');rect(x+2,y+3+i*3,12,1,'#706f66');}rect(x,y,2,16,'#263944');rect(x+14,y,2,16,'#263944');return;}
+ if(t===8&&zone!=='street'){rect(x,y,16,16,'#37434b');if(m.tiles[iy+1]?.[ix]!==8){rect(x,y+10,16,6,'#a9b5b1');rect(x,y+10,16,2,'#dce3d9');rect(x,y+14,16,2,'#708482');}return;}
  if(t===8){rect(x,y,16,16,'#597951');outline(x,y,16,9,'#83a764','#3f614b');rect(x+2,y+2,11,1,'#b0ca7c');rect(x+2,y+5,1,2,'#527148');}
 }
 function pane(x,y,w,h){outline(x,y,w,h,'#5888b0');rect(x+2,y+2,w-4,h-4,'#a0d0e0');rect(x+2,y+2,Math.max(1,Math.floor(w/3)),h-4,'#d8f0e8');rect(x+Math.floor(w/2),y+1,1,h-2,'#486880');rect(x+1,y+Math.floor(h/2),w-2,1,'#486880');}
@@ -129,7 +130,7 @@ function drawProp(p,x,y){
  if(p.type==='platformSign'){rect(x+7,y+4,2,13,INK);outline(x-38,y-9,92,15,'#e8e0c8');txt(p.text,x+8,y+2,INK,8);}
  if(p.type==='table'){outline(x-2,y,20,11,'#f8e0b0');rect(x+1,y+11,3,5,INK);rect(x+13,y+11,3,5,INK);rect(x+5,y+2,6,4,'#789850');}
  if(p.type==='bus'){outline(x,y-9,44,22,'#5078b0');rect(x+2,y-7,40,8,'#c0e0e8');for(let i=10;i<38;i+=9)rect(x+i,y-7,2,8,'#385078');rect(x+3,y+6,37,2,'#f8f0c8');rect(x+6,y+12,7,5,INK);rect(x+31,y+12,7,5,INK);}
- if(p.type==='sign'){rect(x+7,y+5,2,12,INK);sign(p.text,x-16,y-9,48,'#e8d078');}
+ if(p.type==='sign'){const w=Math.max(48,Math.min(144,p.text.length*9+8));rect(x+7,y+5,2,12,INK);sign(p.text,x+8-w/2,y-9,w,'#e8d078');}
 }
 function drawPortal(p,cx,cy){
  const x=p.x*T-cx,y=p.y*T-cy;
@@ -138,6 +139,7 @@ function drawPortal(p,cx,cy){
   outline(x-4,y-19,3,33,'#90a0a0');outline(x-9,y-26,16,15,'#f8f0d0');rect(x-7,y-24,12,5,'#509048');txt(String(p.exit),x-1,y-12,INK,10);
   rect(x,y-1,32,2,'#f8f0d8');rect(x-1,y,2,16,'#687880');rect(x+31,y,2,16,'#687880');
  }else{
+  if(p.door){rect(x,y+3,32,2,'#e0c67b');rect(x,y+13,32,2,'#e0c67b');}
   const title=p.sign||(p.target==='store'?'B1 ↑':p.target==='mall'?'B2 ↓':p.target==='station'?'역 →':'지상 ↑');
   sign(title,x-3,y-15,p.sign==='U-PLEX ↑'?57:39,'#fff0c8');
  }
@@ -154,14 +156,14 @@ function draw(){
  for(const p of m.portals)if(p.x*T>cx-40&&p.x*T<cx+W+40&&p.y*T>cy-30&&p.y*T<cy+H+30)drawPortal(p,cx,cy);
  // Location lettering is on signs and facades; avoid a map-label layer over the field.
  if(zone==='street'&&m.campusGate){const g=m.campusGate;if(Math.abs(player.y-g.y)<14)sign('연세대학교',(g.x+.5)*T-cx-29,g.y*T-cy-22,58,'#e8e0c8');}
- const n=nearby();if(n&&!dialog&&$('#map-overlay').hidden&&$('#journal-overlay').hidden){const x=v.x*T-cx,y=v.y*T-cy;outline(x+3,y-13,10,10,'#fff8d8');txt('!',x+8,y-5,INK,10);}
+ const n=nearby();if(n&&n.kind!=='portal'&&!dialog&&$('#map-overlay').hidden&&$('#journal-overlay').hidden){const x=v.x*T-cx,y=v.y*T-cy;outline(x+3,y-13,10,10,'#fff8d8');txt('!',x+8,y-5,INK,10);}
  $('#hint').textContent=n?(n.kind==='portal'?`${n.label} · 밟으면 입장 · E / Space`:`${n.name} · E / Space`):'짧게 방향 전환 · 길게 걷기 · 계단은 밟으면 입장';
 }
 function renderMap(){
  const map=$('#world-map');map.width=Math.max(220,Math.round(map.clientWidth||480));map.height=Math.max(260,Math.round(map.clientHeight||460));
  const c=map.getContext('2d'),W=map.width,H=map.height,m=maps[zone],s=Math.min((W-20)/m.w,(H-54)/m.h),ox=(W-m.w*s)/2,oy=25+(H-54-m.h*s)/2;
  c.imageSmoothingEnabled=false;c.fillStyle='#fff8d8';c.fillRect(0,0,W,H);
- const colors=['#83ad67','#e8e2d2','#89969a','#f0e7cc','#c5d0c8','#efdfb6','#344b58','#d9cda9','#597951','#b9b6aa','#d8d0bd'];
+ const colors=['#83ad67','#e8e2d2','#89969a','#f0e7cc','#c5d0c8','#efdfb6','#344b58','#d9cda9',zone==='street'?'#597951':'#37434b','#b9b6aa','#d8d0bd'];
  const rgb=colors.map(color=>{const value=parseInt(color.slice(1),16);return [(value>>16)&255,(value>>8)&255,value&255];});
  const buildingColors={block:'#b9b8ae',hyundai:'#d9d5c8',uplex:'#79a0a7',bookshop:'#b87667',campus:'#bcb5a5',counter:'#98a79f',stall:'#d2b27a',produce:'#8ea56b'};
  const tileColor=(tx,ty)=>{const t=m.tiles[ty][tx];if(t!==9)return rgb[t];const b=m.buildings[m.buildingAt[ty][tx]];const color=buildingColors[b?.type]||'#b9b6aa',value=parseInt(color.slice(1),16);return [(value>>16)&255,(value>>8)&255,value&255];};
@@ -206,7 +208,7 @@ function renderMap(){
  c.fillStyle=INK;c.fillRect(me.x-5,me.y-5,11,11);c.fillStyle='#fff8d8';c.fillRect(me.x-4,me.y-4,9,9);c.fillStyle='#e84828';c.fillRect(me.x-2,me.y-2,5,5);
  c.textAlign='left';c.fillStyle=INK;c.fillText('N ↑',10,15);
  c.fillStyle='#e84828';c.fillRect(11,H-17,5,5);c.fillStyle=INK;c.fillText('내 위치',21,H-11);
- if(zone==='street'){
+ if(m.metresPerTile){
   const length=Math.round(100/(m.metresPerTile||6)*s),sx=W-length-12,sy=14;
   c.fillRect(sx,sy,length,2);c.fillRect(sx,sy-3,1,6);c.fillRect(sx+length-1,sy-3,1,6);c.textAlign='right';c.fillText('100 m',W-12,sy-5);
   c.fillStyle='#807860';c.fillText('© OpenStreetMap',W-10,H-11);

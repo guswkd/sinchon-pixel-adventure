@@ -8,13 +8,13 @@ function clearControls(){keys.clear();heldDirections.clear();}
 const SAVE_KEY='sinchon-walk-v5';
 let zone='street',player={...maps.street.spawn,dir:0,step:0},visited=new Set(['street']),bag=[];
 let dialog=null,last=0,time=0,moveTimer=0,toastTimer,music=false,audio,musicTimer,animation=null;
-let miniCache=null,priorPlace='',saveNotice='';
+let miniCache=null,priorPlace='',saveNotice='',arrivalPortal=null;
 try{
  const raw=localStorage.getItem(SAVE_KEY),saved=raw?JSON.parse(raw):null;
  if(saved&&maps[saved.zone]){
   zone=saved.zone;let position=maps[zone].spawn;
-  if(walkable(maps[zone],saved.x,saved.y))position={x:saved.x,y:saved.y};
-  else{if(Number.isInteger(saved.x)&&Number.isInteger(saved.y)){try{position=nearestWalkable(maps[zone],saved.x,saved.y);}catch{}}saveNotice='지도 보정으로 걸을 수 있는 위치에서 다시 시작합니다. 기념품은 보관했어요.';}
+  if((zone==='street'||saved.layout===2)&&walkable(maps[zone],saved.x,saved.y))position={x:saved.x,y:saved.y};
+  else{if((zone==='street'||saved.layout===2)&&Number.isInteger(saved.x)&&Number.isInteger(saved.y)){try{position=nearestWalkable(maps[zone],saved.x,saved.y);}catch{}}saveNotice='지도 보정으로 걸을 수 있는 위치에서 다시 시작합니다. 기념품은 보관했어요.';}
   player={...position,dir:0,step:0};visited=new Set((saved.visited||[]).filter(id=>STAMP_IDS.includes(id)));bag=(saved.bag||[]).filter(x=>['소금빵','은행잎'].includes(x));
  }else if(['v4','v3','v2','v1'].some(version=>localStorage.getItem('sinchon-walk-'+version))){
   const version=['v4','v3','v2','v1'].find(version=>localStorage.getItem('sinchon-walk-'+version));
@@ -23,8 +23,8 @@ try{
   saveNotice='지도가 바뀌어 신촌역 2번 출구에서 다시 시작합니다. 기념품은 보관했어요.';
  }
 }catch{}
-function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify({zone,x:player.x,y:player.y,visited:[...visited],bag}));}catch{}}
-function currentArea(){return zone==='street'&&player.y<campusLine?'campus':zone;}
+function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify({layout:2,zone,x:player.x,y:player.y,visited:[...visited],bag}));}catch{}}
+function currentArea(){return zone==='street'&&player.y<campusLine?'campus':zone==='uplex'?'mall':zone;}
 function updateUI(){
  visited.add(currentArea());$('#place').textContent=placeAt(zone,player.x,player.y);
  $('#progress').textContent=`${visited.size} / ${STAMP_IDS.length}`;
@@ -33,8 +33,8 @@ function updateUI(){
  $('#mission').textContent=visited.size===STAMP_IDS.length?'✧ 신촌 한 바퀴 완주! 모든 기억을 모았어요.':bag.length?`산책 가방 · ${bag.join(', ')}`:'신촌역에서 시작하는 다섯 곳의 기억';
  $('#map-location').textContent=`현재 위치 · ${placeAt(zone,player.x,player.y)}`;save();
 }
-function toast(message){const e=$('#location-toast');e.replaceChildren(document.createTextNode(placeAt(zone,player.x,player.y)));const small=document.createElement('small');small.textContent=message||({street:'북쪽 연세로 · 서쪽 현대백화점',station:'1번 출구 쪽 ↔ 현대백화점 B2',mall:'신촌역 연결층 · B1 식품관으로 올라가세요',store:'역으로 가려면 B2 연결층으로',campus:'연세대 정문을 지나 백양로로'})[currentArea()];e.append(small);e.style.opacity=1;clearTimeout(toastTimer);toastTimer=setTimeout(()=>e.style.opacity=0,3600);}
-function changeZone(p){zone=p.target;const spawn=nearestWalkable(maps[zone],p.tx,p.ty);player.x=spawn.x;player.y=spawn.y;animation=null;clearControls();moveTimer=150;priorPlace=placeAt(zone,player.x,player.y);updateUI();toast();tone(660,.12);}
+function toast(message){const e=$('#location-toast');e.replaceChildren(document.createTextNode(placeAt(zone,player.x,player.y)));const small=document.createElement('small');small.textContent=message||({street:'북쪽 연세로 · 서쪽 현대백화점',station:'지하 대합실 · 서쪽 현대백화점 연결',mall:'본관 ↔ 긴 연결통로 ↔ U-PLEX',store:'역으로 가려면 B2 연결층으로',campus:'연세대 정문을 지나 백양로로'})[currentArea()];e.append(small);e.style.opacity=1;clearTimeout(toastTimer);toastTimer=setTimeout(()=>e.style.opacity=0,3600);}
+function changeZone(p){zone=p.target;const spawn=nearestWalkable(maps[zone],p.tx,p.ty);player.x=spawn.x;player.y=spawn.y;arrivalPortal=maps[zone].portals.find(q=>player.y===q.y&&player.x>=q.x&&player.x<q.x+2)||null;animation=null;clearControls();moveTimer=150;priorPlace=placeAt(zone,player.x,player.y);updateUI();toast();tone(660,.12);}
 function nearby(){
  const m=maps[zone],facing=[[0,1],[-1,0],[1,0],[0,-1]][player.dir];
  const frontX=player.x+facing[0],frontY=player.y+facing[1];
@@ -53,7 +53,7 @@ function interact(){
 }
 function toggleMap(){const open=$('#map-overlay').hidden;$('#map-overlay').hidden=!open;$('#map-button').setAttribute('aria-expanded',String(open));clearControls();if(open){$('#journal-overlay').hidden=true;renderMap();$('#close-map').focus();}else canvas.focus();}
 function visualPosition(){if(!animation)return {x:player.x,y:player.y};const t=Math.min(1,Math.floor(animation.elapsed/animation.duration*4)/4);return {x:animation.x+(player.x-animation.x)*t,y:animation.y+(player.y-animation.y)*t};}
-function move(dx,dy,dir){if(dialog||!$('#map-overlay').hidden||!$('#journal-overlay').hidden)return;player.dir=dir;moveTimer=keys.has('Shift')?100:180;if(!walkable(maps[zone],player.x+dx,player.y+dy))return;const start=visualPosition();player.x+=dx;player.y+=dy;player.step++;const portal=maps[zone].portals.find(p=>player.y===p.y&&player.x>=p.x&&player.x<p.x+2);if(portal){changeZone(portal);return;}animation={...start,elapsed:0,duration:moveTimer};const area=currentArea();if(!visited.has(area))visited.add(area);const place=placeAt(zone,player.x,player.y);if(place!==priorPlace){priorPlace=place;toast();}updateUI();}
+function move(dx,dy,dir){if(dialog||!$('#map-overlay').hidden||!$('#journal-overlay').hidden)return;player.dir=dir;moveTimer=keys.has('Shift')?100:180;if(!walkable(maps[zone],player.x+dx,player.y+dy))return;const start=visualPosition();player.x+=dx;player.y+=dy;player.step++;const portal=maps[zone].portals.find(p=>player.y===p.y&&player.x>=p.x&&player.x<p.x+2);if(portal&&portal!==arrivalPortal){changeZone(portal);return;}if(!portal)arrivalPortal=null;animation={...start,elapsed:0,duration:moveTimer};const area=currentArea();if(!visited.has(area))visited.add(area);const place=placeAt(zone,player.x,player.y);if(place!==priorPlace){priorPlace=place;toast();}updateUI();}
 const DIRECTIONS={ArrowUp:[0,-1,3],KeyW:[0,-1,3],ArrowDown:[0,1,0],KeyS:[0,1,0],ArrowLeft:[-1,0,1],KeyA:[-1,0,1],ArrowRight:[1,0,2],KeyD:[1,0,2]};
 function controlsBlocked(){return !!dialog||!$('#map-overlay').hidden||!$('#journal-overlay').hidden;}
 function beginDirection(key,source='keyboard:'+key){
