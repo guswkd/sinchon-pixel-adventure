@@ -38,3 +38,22 @@ rig.toggle(origin);rig.rotate(Math.PI/4,origin);const manual=rig.targetYaw;rig.u
 rig.toggle({x:origin.x,z:-10});rig.update({x:origin.x,z:-10},1);assert.equal(rig.targetYaw,0,'auto restoration works without a new region boundary crossing');
 rig.reset(origin);assert.equal(rig.enabled,true);assert.equal(rig.preview,null);assert.equal(rig.yaw,REGION_YAW.station);
 console.log('PASS automatic camera: forward/return, continuous boundaries, temporary manual look, explicit manual mode, auto restoration and reset');
+
+const {RunControl}=await import('../prototype/world.mjs');
+const {avatarPixels,AVATAR_PALETTE}=await import('../prototype/avatar.mjs');
+const sprint=new RunControl();assert.equal(sprint.speed,4.1);
+sprint.press('ShiftLeft');sprint.press('ShiftRight');sprint.release('ShiftLeft');assert.ok(sprint.active,'right shift stays active when left is released');
+sprint.clearHeld();assert.equal(sprint.active,false,'blur clears held run keys');
+sprint.toggle();assert.equal(sprint.speed,7.4);sprint.clearHeld();assert.ok(sprint.active,'mobile toggle survives focus loss');sprint.toggle();assert.equal(sprint.active,false);
+const open={bounds:{minX:-100,maxX:100,minZ:-100,maxZ:100},buildings:[]};
+const walkDistance=movePlayer(open,{x:0,z:0},cameraVector(1,-1,0),sprint.speed);sprint.toggle();const runDistance=movePlayer(open,{x:0,z:0},cameraVector(1,-1,0),sprint.speed);
+assert.ok(Math.abs(Math.hypot(runDistance.x,runDistance.z)/Math.hypot(walkDistance.x,walkDistance.z)-7.4/4.1)<1e-8);
+assert.ok(movePlayer(simple,{x:-3,z:0},{x:1,z:0},sprint.speed).x<-.27,'running also stops at building walls');
+for(const gait of ['idle','walk','run'])for(let dir=0;dir<4;dir++)for(let frame=0;frame<4;frame++){
+ const rows=avatarPixels(dir,gait,frame);assert.equal(rows.length,32);assert.ok(rows.every(row=>row.length===24));
+ for(const row of rows)for(const c of row)assert.ok(c==='.'||AVATAR_PALETTE[c],`unknown avatar color ${c}`);
+ if(dir===1)assert.deepEqual(rows,avatarPixels(2,gait,frame).map(row=>row.reverse()),'side views share the same anchor');
+}
+assert.notDeepEqual(avatarPixels(2,'run',0),avatarPixels(2,'walk',0),'run has its own stride');
+assert.notDeepEqual(avatarPixels(0,'walk',0),avatarPixels(0,'walk',2),'walking alternates the feet');
+console.log('PASS run toggle, both Shift keys, focus reset, speed ratio, running collisions and all varsity sprite frames');

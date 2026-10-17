@@ -78,3 +78,13 @@ export class RouteCamera{
  get turning(){return Math.abs(angleDelta(this.yaw,this.targetYaw))>Math.PI/180;}
  get status(){if(!this.enabled)return '수동 시점 · 자동 버튼으로 복귀';if(this.preview)return '둘러보는 중 · 걸으면 자동 복귀';return '자동 · '+this.pose.label+(this.turning?' 방향으로 회전 중':' 시점');}
 }
+
+export class RunControl{
+ constructor(){this.toggled=false;this.held=new Set();}
+ press(code){this.held.add(code);}
+ release(code){this.held.delete(code);}
+ clearHeld(){this.held.clear();}
+ toggle(){this.toggled=!this.toggled;}
+ get active(){return this.toggled||this.held.size>0;}
+ get speed(){return this.active?7.4:4.1;}
+}
