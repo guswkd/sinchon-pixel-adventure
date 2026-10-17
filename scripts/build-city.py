@@ -105,6 +105,7 @@ def compile_geography(source):
             "branch": feature.get("branch", ""),
             "points": points,
             "bbox": bounds(points),
+            **{key: feature[key] for key in ("buildingType", "minHeight", "height") if key in feature},
         })
 
     parks = []

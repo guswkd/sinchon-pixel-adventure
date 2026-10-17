@@ -72,3 +72,20 @@ for(const id of ['ArrowUp','pointer:1'])for(const [x,z] of [[0,-1],[0,1],[-1,0],
  held.press(id,x,z);assert.equal(held.update(.05,2).walking,false,'a fresh press still only turns');
 }
 console.log('PASS held keyboard/touch follows camera through full rotations without speed changes or turn-delay resets');
+
+const bridge=world.buildings.find(b=>b.id==='1041227528');
+assert.equal(bridge.type,'bridge');assert.ok(Math.abs(bridge.baseHeight-3.64)<1e-9);assert.ok(Math.abs(bridge.height-4.48)<1e-9);
+const under=toWorld([203.8,478]),south=toWorld([203.8,487]),north=toWorld([203.8,472]);
+assert.ok(inside(under,bridge.points),'regression route actually crosses the elevated footprint');
+assert.ok(walkable(world,under),'the ground underneath the 4F bridge is open');
+for(const [start,end] of [[south,north],[north,south]]){
+ const distance=Math.hypot(end.x-start.x,end.z-start.z),vector={x:(end.x-start.x)/distance,z:(end.z-start.z)/distance};
+ const finish=movePlayer(world,start,vector,distance);
+ assert.ok(Math.hypot(finish.x-end.x,finish.z-end.z)<1e-8,'walk/run through the entire underpass in both directions');
+ assert.ok(reachable.some(p=>Math.hypot(p.x-start.x,p.z-start.z)<.6),'underpass entrance is reachable from station');
+}
+assert.equal(walkable(world,toWorld([209,488])),false,'adjacent shops still block the player');
+assert.equal(walkable(world,toWorld([190,505])),false,'Hyundai main building stays solid');
+const overhead={...simple,buildings:[{...simple.buildings[0],baseHeight:2}]};assert.equal(walkable(overhead,{x:1,z:0}),false,'too-low structures are not passable');
+overhead.buildings[0].baseHeight=3.64;assert.equal(walkable(overhead,{x:1,z:0}),true);
+console.log('PASS surveyed 4F bridge clearance, reachable underpass, two-way traversal and adjacent wall collisions');

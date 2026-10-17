@@ -6,6 +6,13 @@ root=ET.parse(ROOT/'reference/sinchon-osm.xml').getroot()
 nodes={n.attrib['id']:n for n in root.findall('node')}
 ways={n.attrib['id']:n for n in root.findall('way')}
 def tags(e): return {t.attrib['k']:t.attrib['v'] for t in e.findall('tag')}
+def vertical(t):
+ """Preserve surveyed elevated structures instead of flattening them to walls."""
+ if t.get('building')!='bridge' and 'min_height' not in t:return {}
+ result={'buildingType':t.get('building','yes')}
+ for source,dest in [('min_height','minHeight'),('height','height')]:
+  if source in t:result[dest]=float(t[source])
+ return result
 # Six metres per tile, latitude/longitude aspect corrected at Seoul's latitude.
 west,north,east,south=126.932,37.563,126.942,37.553
 scaleX=111320*math.cos(math.radians(37.558))/6
@@ -38,14 +45,14 @@ for e in ways.values():
  if t.get('highway') in ['primary','secondary','tertiary','residential','living_street','service','pedestrian','footway','path','steps','unclassified'] and not indoor:
   roads.append({'id':e.attrib['id'],'name':t.get('name',''),'kind':t['highway'],'points':p,'crossing':t.get('footway')=='crossing'})
  if t.get('building') and not indoor:
-  buildings.append({'id':e.attrib['id'],'name':t.get('name',''),'branch':t.get('branch',''),'points':p})
+  buildings.append({'id':e.attrib['id'],'name':t.get('name',''),'branch':t.get('branch',''),'points':p,**vertical(t)})
  if t.get('leisure') in ['park','garden','pitch'] or t.get('landuse') in ['grass','forest'] or t.get('natural') in ['wood','grassland']:
   parks.append({'name':t.get('name',''),'points':p})
 for rel in root.findall('relation'):
  t=tags(rel)
  if t.get('building') and t.get('type')=='multipolygon':
   for p in outer_rings(rel):
-   if intersects(p):buildings.append({'id':rel.attrib['id'],'name':t.get('name',''),'branch':t.get('branch',''),'points':p})
+   if intersects(p):buildings.append({'id':rel.attrib['id'],'name':t.get('name',''),'branch':t.get('branch',''),'points':p,**vertical(t)})
 for n in nodes.values():
  t=tags(n);p=xy(n)
  if not (0<=p[0]<w and 0<=p[1]<h):continue

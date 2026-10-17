@@ -65,3 +65,12 @@ for e,way_id in zip(underground['exits'],[1436163438,1436163442,1436159555,14361
     assert underground['nodes'][e['surface']]['point']!=underground['nodes'][e['landing']]['point']
 assert all(int(w['id']) not in [1436179980,1436179981,1436179984] for ws in underground['corridors'].values() for w in ws), '4F bridge must not become an underground path'
 print('PASS: 19 underground paths preserve every surveyed bend; 8 distinct stair endpoints; no 4F bridge mixed into underground')
+
+bridge_source=ways['1041227528']
+bridge_tags={t.get('k'):t.get('v') for t in bridge_source.findall('tag')}
+for data in [source,city]:
+    bridge=next(b for b in data['buildings'] if b['id']=='1041227528')
+    assert bridge['buildingType']==bridge_tags['building']=='bridge'
+    assert bridge['minHeight']==float(bridge_tags['min_height'])==13
+    assert bridge['height']==float(bridge_tags['height'])==16
+print('PASS: Hyundai–U-PLEX bridge keeps surveyed 13 m clearance and 16 m top through both map compilers')

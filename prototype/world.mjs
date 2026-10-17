@@ -1,6 +1,7 @@
 // Continuous world coordinates: the surveyed street geometry is compressed
 // uniformly for a walkable diorama, never rasterized into stair-step tiles.
 export const SCALE=.42;
+export const PLAYER_HEIGHT=2.8;
 export const SURVEY_BOUNDS={left:145,right:300,top:422,bottom:616};
 export const toWorld=([x,z])=>({x:(x-225)*SCALE,z:(z-525)*SCALE});
 export function inside(p,points){let c=false;for(let i=0,j=points.length-1;i<points.length;j=i++){const a=points[i],b=points[j];if((a.z>p.z)!==(b.z>p.z)&&p.x<(b.x-a.x)*(p.z-a.z)/(b.z-a.z)+a.x)c=!c;}return c;}
@@ -11,9 +12,11 @@ export function createWorld(source){
  const bounds={minX:(145-225)*SCALE,maxX:(300-225)*SCALE,minZ:(422-525)*SCALE,maxZ:(616-525)*SCALE};
  const roads=source.roads.filter(r=>intersects(r.points)).map(r=>({...r,points:r.points.map(toWorld),width:(widths[r.kind]||2.5)*SCALE,pedestrian:['footway','path','steps','pedestrian'].includes(r.kind)}));
  const buildings=source.buildings.filter(b=>intersects(b.points)).map((b,i)=>{
-  const points=b.points.map(toWorld);const type=b.branch==='신촌점'?'hyundai':b.branch==='U Plex'?'uplex':'shop';
+  const points=b.points.map(toWorld);const type=b.buildingType==='bridge'?'bridge':b.branch==='신촌점'?'hyundai':b.branch==='U Plex'?'uplex':'shop';
   const center={x:points.reduce((a,p)=>a+p.x,0)/points.length,z:points.reduce((a,p)=>a+p.z,0)/points.length};
-  return {id:b.id,points,type,center,height:type==='hyundai'?7:type==='uplex'?8.2:3+(i%4)*.7,index:i};
+  const metresToWorld=SCALE/(source.metresPerTile||1.5),baseHeight=Math.max(0,(b.minHeight||0)*metresToWorld);
+  const height=baseHeight>0?Math.max(baseHeight+.2,(b.height||b.minHeight+3)*metresToWorld):type==='hyundai'?7:type==='uplex'?8.2:3+(i%4)*.7;
+  return {id:b.id,points,type,center,baseHeight,height,index:i};
  });
  const parks=source.parks.filter(p=>intersects(p.points)).map(p=>({...p,points:p.points.map(toWorld)}));
  const exits=source.exits.map(e=>({...e,...toWorld([e.x,e.y])}));
@@ -29,7 +32,7 @@ export function createWorld(source){
 export function walkable(world,p,r=.28){
  const b=world.bounds;if(p.x<b.minX+r||p.x>b.maxX-r||p.z<b.minZ+r||p.z>b.maxZ-r)return false;
  if((world.obstacles||[]).some(o=>Math.hypot(p.x-o.x,p.z-o.z)<r+o.r))return false;
- return !world.buildings.some(b=>inside(p,b.points)||b.points.some((a,i)=>segmentDistance(p,a,b.points[(i+1)%b.points.length])<r));
+ return !world.buildings.some(b=>(b.baseHeight||0)<PLAYER_HEIGHT+.1&&(inside(p,b.points)||b.points.some((a,i)=>segmentDistance(p,a,b.points[(i+1)%b.points.length])<r)));
 }
 export function findFree(world,p){if(walkable(world,p))return {...p};for(let r=.5;r<10;r+=.5)for(let a=0;a<Math.PI*2;a+=Math.PI/12){const q={x:p.x+Math.cos(a)*r,z:p.z+Math.sin(a)*r};if(walkable(world,q))return q;}throw Error('No accessible starting point');}
 export function cameraVector(x,z,yaw){const l=Math.hypot(x,z);if(!l)return {x:0,z:0};return {x:(x*Math.cos(yaw)+z*Math.sin(yaw))/l,z:(-x*Math.sin(yaw)+z*Math.cos(yaw))/l};}
