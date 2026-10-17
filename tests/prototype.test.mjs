@@ -11,9 +11,9 @@ for(let i=0;i<queue.length;i++){const p=queue[i];reachable.push(p);for(const [dx
 for(const l of world.landmarks)assert.ok(reachable.some(p=>Math.hypot(p.x-l.x,p.z-l.z)<4),l.name+' is reachable from the station');
 console.log('PASS surveyed outdoor scene:',world.buildings.length,'buildings,',world.roads.length,'roads; all 3 landmarks reachable');
 for(const yaw of [0,Math.PI/4,Math.PI/2,Math.PI]){const v=cameraVector(1,-1,yaw);assert.ok(Math.abs(Math.hypot(v.x,v.z)-1)<1e-9,'diagonals do not run faster');const right=cameraVector(1,0,yaw),up=cameraVector(0,-1,yaw);assert.ok(Math.abs(right.x*up.x+right.z*up.z)<1e-9);}
-const input=new TurnWalkInput();input.press('up',0,-1);assert.equal(input.update(.1,0).walking,false);assert.equal(input.update(.049,0).walking,false);assert.equal(input.update(.001,0).walking,true);const locked=input.update(.1,Math.PI/2);assert.deepEqual(locked.vector,{x:0,z:-1},'camera rotation must not steer a held key');input.release('up');assert.equal(input.update(.1,1).walking,false);input.press('right',1,0);assert.equal(input.update(.1,1).walking,false);input.clear();assert.equal(input.update(1,1).walking,false);
+const input=new TurnWalkInput();input.press('up',0,-1);assert.equal(input.update(.1,0).walking,false);assert.equal(input.update(.049,0).walking,false);assert.equal(input.update(.001,0).walking,true);const rotated=input.update(.1,Math.PI/2);assert.ok(Math.abs(rotated.vector.x+1)<1e-9&&Math.abs(rotated.vector.z)<1e-9,'held up follows the current camera');assert.ok(rotated.walking,'camera rotation does not restart the turn delay');input.release('up');assert.equal(input.update(.1,1).walking,false);input.press('right',1,0);assert.equal(input.update(.1,1).walking,false);input.clear();assert.equal(input.update(1,1).walking,false);
 input.press('touch1',0,-1);input.press('touch2',1,0);const diagonal=input.update(.2,0);assert.ok(diagonal.walking);assert.ok(Math.abs(diagonal.vector.x+diagonal.vector.z)<1e-9);input.release('touch1');assert.equal(input.update(.05,0).walking,false,'changing touch direction gets a fresh turn delay');
-console.log('PASS camera-relative input: tap, hold, normalized diagonal, held-heading lock and multitouch');
+console.log('PASS camera-relative input: tap, hold, normalized diagonal, live camera heading and multitouch');
 const simple={bounds:{minX:-10,maxX:10,minZ:-10,maxZ:10},buildings:[{points:[{x:0,z:-2},{x:3,z:-2},{x:3,z:2},{x:0,z:2}]}]};
 const stopped=movePlayer(simple,{x:-3,z:0},{x:1,z:0},10);assert.ok(stopped.x<-.27,'swept collision prevents crossing a whole building');
 const slide=movePlayer(simple,{x:-.4,z:-1},{x:Math.SQRT1_2,z:Math.SQRT1_2},2);assert.ok(slide.x<0&&slide.z>-.2,'diagonal movement slides along a wall');
@@ -57,3 +57,18 @@ for(const gait of ['idle','walk','run'])for(let dir=0;dir<4;dir++)for(let frame=
 assert.notDeepEqual(avatarPixels(2,'run',0),avatarPixels(2,'walk',0),'run has its own stride');
 assert.notDeepEqual(avatarPixels(0,'walk',0),avatarPixels(0,'walk',2),'walking alternates the feet');
 console.log('PASS run toggle, both Shift keys, focus reset, speed ratio, running collisions and all varsity sprite frames');
+
+// A held key or finger always projects back onto the requested SCREEN direction,
+// throughout automatic camera blends and repeated manual rotations.
+for(const id of ['ArrowUp','pointer:1'])for(const [x,z] of [[0,-1],[0,1],[-1,0],[1,0],[1,-1]]){
+ const held=new TurnWalkInput();held.press(id,x,z);held.update(.15,0);
+ for(let angle=-Math.PI*2;angle<=Math.PI*2;angle+=.07){
+  const control=held.update(1/60,angle),v=control.vector,l=Math.hypot(x,z);
+  const screenX=v.x*Math.cos(angle)-v.z*Math.sin(angle),screenZ=v.x*Math.sin(angle)+v.z*Math.cos(angle);
+  assert.ok(Math.abs(screenX-x/l)<1e-9&&Math.abs(screenZ-z/l)<1e-9,'input follows current screen axes');
+  assert.ok(control.walking,'rotation never interrupts walking or running');
+ }
+ held.release(id);assert.equal(held.update(1/60,1).walking,false);
+ held.press(id,x,z);assert.equal(held.update(.05,2).walking,false,'a fresh press still only turns');
+}
+console.log('PASS held keyboard/touch follows camera through full rotations without speed changes or turn-delay resets');

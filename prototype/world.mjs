@@ -40,14 +40,15 @@ export function movePlayer(world,p,vector,distance){
  return q;
 }
 export class TurnWalkInput{
- constructor(){this.held=new Map();this.age=0;this.signature='';this.lockYaw=0;}
+ constructor(){this.held=new Map();this.age=0;this.signature='';}
  press(id,x,z){this.held.set(id,{x,z});}
  release(id){this.held.delete(id);}
  clear(){this.held.clear();this.age=0;this.signature='';}
  update(dt,yaw){let x=0,z=0;for(const v of this.held.values()){x+=v.x;z+=v.z;}x=Math.sign(x);z=Math.sign(z);const signature=x+','+z;
-  if(signature!==this.signature){this.age=0;this.signature=signature;this.lockYaw=yaw;}
-  const vector=cameraVector(x,z,this.lockYaw),moving=(x!==0||z!==0);this.age+=dt;
-  // Lock the world direction while held so automatic camera changes cannot steer you.
+  if(signature!==this.signature){this.age=0;this.signature=signature;}
+  // Resolve against the visible camera every frame, even while a key or touch
+  // remains held. Camera rotation must not restart the turn-before-walk delay.
+  const vector=cameraVector(x,z,yaw),moving=(x!==0||z!==0);this.age+=dt;
   return {vector,facing:moving,walking:moving&&this.age>=.15};
  }
 }
