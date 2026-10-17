@@ -16,9 +16,10 @@ const matCache=new Map();function material(color){if(!matCache.has(color))matCac
 function box(w,h,d,color,x,y,z){const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material(color));mesh.position.set(x,y+h/2,z);scene.add(mesh);return mesh;}
 function shapeOf(points){const s=new THREE.Shape();points.forEach((p,i)=>i?s.lineTo(p.x,-p.z):s.moveTo(p.x,-p.z));s.closePath();return s;}
 function flat(points,color,y=.01,opacity=1){const mesh=new THREE.Mesh(new THREE.ShapeGeometry(shapeOf(points)),new THREE.MeshLambertMaterial({color,side:THREE.DoubleSide,transparent:opacity<1,opacity,depthWrite:opacity===1}));mesh.rotation.x=-Math.PI/2;mesh.position.y=y;scene.add(mesh);return mesh;}
-function disk(x,z,r,color,y=.02,opacity=1){const m=new THREE.Mesh(new THREE.CircleGeometry(r,12),new THREE.MeshBasicMaterial({color,transparent:opacity<1,opacity,depthWrite:false}));m.rotation.x=-Math.PI/2;m.position.set(x,y,z);scene.add(m);return m;}
+function disk(x,z,r,color,y=.02,opacity=1,lit=false){const DiskMaterial=lit?THREE.MeshLambertMaterial:THREE.MeshBasicMaterial;const m=new THREE.Mesh(new THREE.CircleGeometry(r,12),new DiskMaterial({color,transparent:opacity<1,opacity,depthWrite:opacity===1}));m.rotation.x=-Math.PI/2;m.position.set(x,y,z);scene.add(m);return m;}
 function ribbon(points,width,color,y){for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],l=Math.hypot(b.x-a.x,b.z-a.z);if(l<.01)continue;const nx=-(b.z-a.z)/l*width/2,nz=(b.x-a.x)/l*width/2;flat([{x:a.x+nx,z:a.z+nz},{x:b.x+nx,z:b.z+nz},{x:b.x-nx,z:b.z-nz},{x:a.x-nx,z:a.z-nz}],color,y);}
- for(const p of points)disk(p.x,p.z,width/2,color,y+.0002);
+ // Joins need the same lighting as the ribbon; unlit caps appear as pale dots.
+ for(const p of points)disk(p.x,p.z,width/2,color,y+.0002,1,true);
 }
 function texture(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const tex=new THREE.CanvasTexture(c);tex.magFilter=THREE.NearestFilter;tex.minFilter=THREE.NearestFilter;tex.colorSpace=THREE.SRGBColorSpace;return tex;}
 const paving=texture(64,64,(c)=>{c.fillStyle='#e2ddc7';c.fillRect(0,0,64,64);c.fillStyle='#d5cfb8';for(let i=0;i<64;i+=16){c.fillRect(0,i,64,1);c.fillRect(i,0,1,64);}c.fillStyle='#eae4d1';for(let i=0;i<24;i++)c.fillRect(i*17%64,i*29%64,1,1);});paving.wrapS=paving.wrapT=THREE.RepeatWrapping;paving.repeat.set(22,26);

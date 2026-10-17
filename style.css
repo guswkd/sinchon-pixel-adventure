@@ -13,3 +13,5 @@ main{width:min(832px,calc((100dvh - 185px)*1.3333),calc(100vw - 32px))}
 .window-heading{border-bottom-color:#87958b}
 #mission{background:#edf0d8}
 @media(max-width:700px){main{width:calc(100vw - 28px);min-width:0}}
+
+.prototype-link{font-size:10px;color:#605c4a;white-space:nowrap;text-underline-offset:4px}@media(max-width:700px){header{gap:8px}.prototype-link{font-size:9px}}
