@@ -141,7 +141,7 @@ function drawPortal(p,cx,cy){
  }else{
   if(p.door){rect(x,y+3,32,2,'#e0c67b');rect(x,y+13,32,2,'#e0c67b');}
   const title=p.sign||(p.target==='store'?'B1 ↑':p.target==='mall'?'B2 ↓':p.target==='station'?'역 →':'지상 ↑');
-  sign(title,x-3,y-15,p.sign==='U-PLEX ↑'?57:39,'#fff0c8');
+  sign(title,x-3,y-23,p.sign==='U-PLEX ↑'?57:39,'#fff0c8');
  }
 }
 function draw(){
@@ -194,6 +194,7 @@ function renderMap(){
   for(const a of [...m.labels].filter(a=>['store','shop','book','campus','landmark'].includes(a.kind)||['연세로','명물길'].includes(a.name)).sort((a,b)=>(priority[a.kind]??5)-(priority[b.kind]??5)))label(a.name,a.x,a.y,a.kind);
  }else{
   for(const p of m.portals)label(p.sign||(p.exit?String(p.exit)+'번':p.target==='store'?'B1 ↑':p.target==='mall'?'B2 연결':p.target==='street'?'지상 ↑':'신촌역 →'),p.x,p.y,'indoor');
+  for(const a of m.labels)label(a.name,a.x,a.y,'indoor');
  }
  // Draw all leaders below labels so a later annotation cannot cross another word.
  c.lineWidth=1;

@@ -23,6 +23,7 @@ try{
   saveNotice='지도가 바뀌어 신촌역 2번 출구에서 다시 시작합니다. 기념품은 보관했어요.';
  }
 }catch{}
+arrivalPortal=maps[zone].portals.find(p=>player.y===p.y&&player.x>=p.x&&player.x<p.x+2)||null;
 function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify({layout:2,zone,x:player.x,y:player.y,visited:[...visited],bag}));}catch{}}
 function currentArea(){return zone==='street'&&player.y<campusLine?'campus':zone==='uplex'?'mall':zone;}
 function updateUI(){

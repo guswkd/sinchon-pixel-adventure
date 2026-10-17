@@ -332,6 +332,7 @@ assert.equal(correctedSave.run("bag.includes('소금빵')&&visited.has('mall')")
 const oldIndoor=boot({'sinchon-walk-v5':JSON.stringify({zone:'mall',x:32,y:14,bag:['소금빵'],visited:['mall']})});
 assert.equal(oldIndoor.run('player.x===maps.mall.spawn.x&&player.y===maps.mall.spawn.y'),true,'old indoor layout saves relocate to the new entrance');
 assert.equal(oldIndoor.run("bag.includes('소금빵')"),true);
+oldIndoor.run('move(1,0,2)');assert.equal(oldIndoor.run('zone'),'mall','restored arrival stair does not bounce on a sideways step');
 console.log('PASS save/load, invalid save recovery, v1–v4 migration preserving gifts and stamps');
 const exitsTest=boot();
 for(const {number} of reference.exits){

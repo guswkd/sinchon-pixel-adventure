@@ -125,6 +125,7 @@ addPortal(mall,escalator.x,escalator.y,'store',foodEscalator.x,foodEscalator.y,'
 for(const [id,text] of [['13200712313','신촌역 ↓'],['13200712323','본관 ↙  U-PLEX ↗'],['13200478455','빨잠 ↖  1F →']]){const p=undergroundPoint(id,'mall');mall.props.push({...p,type:'sign',text});}
 const guide=undergroundPoint('13206245651','mall');addNPC(mall,guide.x+3,guide.y,'백화점 안내 직원',['남서쪽은 현대백화점 본관, 북동쪽 긴 연결통로 끝은 U-PLEX예요.','빨잠 광장 계단과 U-PLEX 건물 안 에스컬레이터는 서로 다른 출입구예요.','본관 B1 식품관은 본관 안 에스컬레이터로 올라가세요.'],'clerk');
 mall.spawn=undergroundPoint('2364556158','mall');
+mall.labels=[{name:'본관 B2',...localPoint('mall',174,504)},{name:'U-PLEX B2',...localPoint('mall',226,469)}];
 const uplex=mappedInterior('uplex');mappedCorridors(uplex,'uplex');
 portalAt(uplex,'13200478453','street','13200478453','U-PLEX 광장 출입문',{door:true,sign:'광장 ↑'});
 portalAt(uplex,'13200478454','mall','13206248860','B2 연결통로 ↓',{sign:'B2 ↓'});uplex.spawn=undergroundPoint('13200478453','uplex');
