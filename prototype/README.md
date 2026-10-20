@@ -22,10 +22,12 @@ Validation: `node tests/prototype.test.mjs` from repository root. Includes route
 
 Current camera scope is the walking presentation, not a fresh geographical survey. Station approach tests cover the complete outward and return transition, boundary stability, explicit manual mode, automatic restoration after looking around, and return-to-station reset.
 
-Hero art: `avatar.mjs` draws short dark hair, royal-blue body, ivory sleeves, Y patches and white sneakers in four directions. The original 2D hero is unchanged. Run input tests cover both Shift keys, release/blur cleanup, touch toggle persistence, diagonal speed and wall collisions.
+Hero art: `avatar.mjs` draws a backward navy/gold cap, large readable eyes, a compact head/body silhouette, royal-blue varsity jacket, ivory sleeves, Y patches and short white sneakers in four directions. The original 2D hero is unchanged. Run input tests cover both Shift keys, release/blur cleanup, touch toggle persistence, diagonal speed and wall collisions.
 
 ### Hyundai–U-PLEX underpass
 
 The saved OSM way 1041227528 is a 4F building bridge (`min_height=13`, `height=16`). Both geography compilers now retain this vertical metadata. Its upper volume is rendered at 3.64–4.48 scene units, with the ground alley open below it; its footprint is no longer a ground-level collision wall. Neighboring shops and Hyundai remain solid. Bridge roof equipment was removed, glass sides and an underside rim distinguish the raised structure, and the map outlines it with a dashed line. This is the ground alley beneath the bridge, not a new underground/4F entrance.
 
 Validation includes walking the entire alley northward and southward through the bridge footprint, reachability from the station, adjacent wall collisions, insufficient-clearance rejection, and metadata comparison against the saved survey XML.
+
+Character revision 2 references Ethan’s HGSS field proportions and movement silhouettes (https://bulbapedia.bulbagarden.net/wiki/File:EthanHGSSwalkdown.png and https://www.deviantart.com/chrisx698/art/Pokemon-HG-SS-Sprite-Gold-165246738). All runtime pixels are newly authored in avatar.mjs. The live four-direction idle/walk/run review is at `reference/character-study.html`.
