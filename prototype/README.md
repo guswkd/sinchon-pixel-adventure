@@ -1,9 +1,9 @@
-# 회전하는 신촌 — outdoor prototype 01
+# 회전하는 신촌 — outdoor sections 01 + 02
 
 Separate from the original game. Open `prototype/index.html` through HTTP(S).
 
 - Vendored Three.js 0.160.1 (MIT), no external runtime/CDN dependency.
-- Original surveyed `CITY_GEOGRAPHY` is cropped to Sinchon Station–Hyundai–U-PLEX and uniformly compressed into a small walking scene. Building heights, facades and street props are illustrative, not surveyed.
+- Original surveyed `CITY_GEOGRAPHY` is cropped to Sinchon Station–Hyundai–U-PLEX–northern Yonsei-ro–the first Myeongmul-gil stretch–Changchun Church and uniformly compressed into a small walking scene. Building heights, facades and street props are illustrative, not surveyed.
 - Polygon ground and extruded buildings, nearest-filtered textures and a recoloured HGSS Ethan field sprite and existing NPC sprites (source credits in `assets/ethan-source.md`).
 - Orthographic camera: Q/R look around by 45 degrees (walking 0.7 world units resumes auto); C explicitly toggles auto/manual; Z toggles distance.
 - Arrows/WASD: tap faces, hold 150 ms walks, combined keys walk diagonally. A new press or changed direction follows the visible screen axes; holding the same direction preserves its world heading through camera turns. Releasing/re-pressing reads the current screen again. Camera rotation does not restart the turn delay. Hold Shift to run at 1.8× walking speed, or toggle the visible run button on desktop/phones. Running has a separate four-frame stride; the 150 ms turn-only delay still applies.
@@ -15,9 +15,9 @@ Validation: `node tests/prototype.test.mjs` from repository root. Includes route
 
 ## Section-by-section work
 
-1. **Sinchon Station → Yonsei-ro entrance (current review)**: camera aligned to the surveyed Yonsei-ro centreline (about −1.79°), with no artificial station-to-street turn. The minor northern road bend is retained; the plaza view rotates only west of the main street. Camera look-ahead rotates about the player, so rotating in place does not move the character on screen. UI shows automatic/manual/temporary look state. Desktop viewport fills the screen frame. Original game links to the HTTPS prototype, including when opened as a local file.
-2. Hyundai frontage and side streets: next review; geometry and illustrative facades remain from prototype 01.
-3. U-PLEX and Red Periscope plaza: later review; existing prototype only.
+1. **Sinchon Station → Hyundai → U-PLEX (01)**: camera aligned to the surveyed Yonsei-ro centreline (about −1.79°), with no artificial station-to-street turn. The minor northern road bend is retained; the plaza view rotates only west of the main street. Camera look-ahead rotates about the player, so rotating in place does not move the character on screen. UI shows automatic/manual/temporary look state. Desktop viewport fills the screen frame. Original game links to the HTTPS prototype, including when opened as a local file.
+2. **Northern Yonsei-ro + Myeongmul-gil (02, open)**: continuous extension from the old y=422 boundary to y=258, east edge x=350. The surveyed fork, side streets and Changchun Church footprint are retained. Seven visit points, numbered mini-map and current-section highlighting are available. New shop facades have doors/show windows; roof details are limited. Heights and facades remain illustrative.
+3. Seongsan-ro crossing → Yonsei main gate: next section, not yet walkable. Real surrounding blocks are rendered as background beyond the playable edge.
 4. Subway and department-store underground connections: later implementation; not accessible in this 3D prototype.
 
 Current camera scope is the walking presentation, not a fresh geographical survey. Station approach tests cover the complete outward and return transition, boundary stability, explicit manual mode, automatic restoration after looking around, and return-to-station reset.
@@ -31,3 +31,12 @@ The saved OSM way 1041227528 is a 4F building bridge (`min_height=13`, `height=1
 Validation includes walking the entire alley northward and southward through the bridge footprint, reachability from the station, adjacent wall collisions, insufficient-clearance rejection, and metadata comparison against the saved survey XML.
 
 Character revision 3 uses the source sprites directly instead of the previous hand-drawn approximation. The live four-direction idle/walk/run review is at `reference/character-study.html`.
+
+
+### Section 02 validation
+
+The playable crop contains 438 building footprints and 311 road features from the saved survey. The background buffer adds surrounding buildings/roads without expanding collision bounds. Existing section 01 facade palettes/heights retain their previous indices. The ground surface is sized from the expanded world bounds.
+
+Camera north bearings follow saved Yonsei-ro points; Myeongmul-gil gets a gradual diagonal view off the main street. The old plaza turn fades before the section seam. Holding a direction remains world-straight through all camera transitions.
+
+Tests cover all seven reachable destinations, north/south traversal of the surveyed main street and branch, continuous camera seams, and the previous controls/bridge regressions. Manual browser checks cover the station-to-northern-end run, Changchun Church approach/interaction, diagonal Myeongmul-gil travel and mobile held-button return. The seven-point map and controls were checked at 390 × 844. Sources and exact scope are recorded in `reference/map-audit/section-02.md`.

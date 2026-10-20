@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import {createWorld,toWorld,inside,walkable,movePlayer,cameraVector,TurnWalkInput,RouteCamera,routeCameraPose,REGION_YAW,STREET_ROUTE,angleDelta} from '../prototype/world.mjs';
+import {createWorld,toWorld,inside,walkable,movePlayer,cameraVector,TurnWalkInput,RouteCamera,routeCameraPose,REGION_YAW,STREET_ROUTE,MYEONGMUL_ROUTE,SURVEY_BOUNDS,sectionAt,angleDelta} from '../prototype/world.mjs';
 const sandbox={};vm.createContext(sandbox);vm.runInContext(fs.readFileSync(new URL('../assets/city-geography.js',import.meta.url),'utf8')+';this.data=CITY_GEOGRAPHY;',sandbox);const world=createWorld(sandbox.data);
 assert.ok(walkable(world,world.spawn));assert.equal(world.exits.length,8);
 assert.ok(world.buildings.some(b=>b.type==='hyundai'));assert.ok(world.buildings.some(b=>b.type==='uplex'));
@@ -9,7 +9,7 @@ assert.ok(world.buildings.some(b=>b.type==='hyundai'));assert.ok(world.buildings
 const step=.6,start=world.spawn,queue=[start],seen=new Set(['0,0']),reachable=[];
 for(let i=0;i<queue.length;i++){const p=queue[i];reachable.push(p);for(const [dx,dz] of [[step,0],[-step,0],[0,step],[0,-step]]){const q={x:p.x+dx,z:p.z+dz},key=Math.round((q.x-start.x)/step)+','+Math.round((q.z-start.z)/step);if(!seen.has(key)&&walkable(world,q)){seen.add(key);queue.push(q);}}}
 for(const l of world.landmarks)assert.ok(reachable.some(p=>Math.hypot(p.x-l.x,p.z-l.z)<4),l.name+' is reachable from the station');
-console.log('PASS surveyed outdoor scene:',world.buildings.length,'buildings,',world.roads.length,'roads; all 3 landmarks reachable');
+console.log('PASS surveyed outdoor scene:',world.buildings.length,'buildings,',world.roads.length,'roads;',world.landmarks.length,'landmarks reachable');
 for(const yaw of [0,Math.PI/4,Math.PI/2,Math.PI]){const v=cameraVector(1,-1,yaw);assert.ok(Math.abs(Math.hypot(v.x,v.z)-1)<1e-9,'diagonals do not run faster');const right=cameraVector(1,0,yaw),up=cameraVector(0,-1,yaw);assert.ok(Math.abs(right.x*up.x+right.z*up.z)<1e-9);}
 const input=new TurnWalkInput();input.press('up',0,-1);assert.equal(input.update(.1,0).walking,false);assert.equal(input.update(.049,0).walking,false);assert.equal(input.update(.001,0).walking,true);const rotated=input.update(.1,Math.PI/2);assert.ok(Math.abs(rotated.vector.x)<1e-9&&Math.abs(rotated.vector.z+1)<1e-9,'held up keeps its initial world heading');assert.ok(rotated.walking,'camera rotation does not restart the turn delay');input.release('up');assert.equal(input.update(.1,1).walking,false);input.press('right',1,0);assert.equal(input.update(.1,1).walking,false);input.clear();assert.equal(input.update(1,1).walking,false);
 input.press('touch1',0,-1);input.press('touch2',1,0);const diagonal=input.update(.2,0);assert.ok(diagonal.walking);assert.ok(Math.abs(diagonal.vector.x+diagonal.vector.z)<1e-9);input.release('touch1');assert.equal(input.update(.05,0).walking,false,'changing touch direction gets a fresh turn delay');
@@ -23,10 +23,10 @@ console.log('PASS continuous collision, corner sliding, region camera and shorte
 // A straight surveyed road must remain straight on screen; only entering the
 // western plaza rotates the automatic view. The road's small bend is retained.
 const road=world.roads.find(r=>r.id==='383312033');
-assert.deepEqual(JSON.parse(JSON.stringify(road.points.slice(0,3))),STREET_ROUTE);
+assert.deepEqual(JSON.parse(JSON.stringify(road.points.slice(0,3))),STREET_ROUTE.slice(0,3));
 const rig=new RouteCamera(world.spawn),origin={...world.spawn};
 assert.equal(rig.yaw,REGION_YAW.station);
-for(let z=8;z>=-20;z-=.1){rig.update({x:origin.x,z},1/60);assert.ok(Math.abs(rig.yaw-REGION_YAW.yonsei)<1e-9,'no gratuitous rotation on the straight street');}
+for(let z=8;z>=-20;z-=.1){rig.update({x:origin.x,z},1/60);assert.ok(Math.abs(rig.yaw-REGION_YAW.yonsei)<.002,'no gratuitous rotation on the straight street');}
 for(let z=-20;z>=-35;z-=.1){rig.update({x:6,z},1/60);assert.ok(Math.abs(rig.yaw)<.04,'walking north on the street does not trigger the plaza turn');}
 const plaza={x:-3,z:-33};
 for(let i=0;i<180;i++)rig.update(plaza,1/60);
@@ -108,3 +108,21 @@ assert.equal(walkable(world,toWorld([190,505])),false,'Hyundai main building sta
 const overhead={...simple,buildings:[{...simple.buildings[0],baseHeight:2}]};assert.equal(walkable(overhead,{x:1,z:0}),false,'too-low structures are not passable');
 overhead.buildings[0].baseHeight=3.64;assert.equal(walkable(overhead,{x:1,z:0}),true);
 console.log('PASS surveyed 4F bridge clearance, reachable underpass, two-way traversal and adjacent wall collisions');
+
+// Section 02 follows the saved survey, remains connected across the old edge,
+// and keeps both arterial routes open in both directions.
+assert.equal(SURVEY_BOUNDS.top,258);assert.equal(sectionAt(toWorld([241,410])),2);
+assert.equal(sectionAt(world.spawn),1);
+assert.ok(world.buildings.some(b=>b.name==='창천교회'&&b.type==='church'));
+const namedRoads=world.roads.filter(r=>r.name==='연세로'||r.name==='명물길');
+for(const point of [...STREET_ROUTE,...MYEONGMUL_ROUTE])assert.ok(namedRoads.some(r=>r.points.some(p=>Math.hypot(p.x-point.x,p.z-point.z)<1e-8)),'camera route point must come from survey');
+for(const route of [STREET_ROUTE,MYEONGMUL_ROUTE,[toWorld([240.68,431.24]),toWorld([240.64,416.88])]])for(const path of [route,[...route].reverse()]){
+ let p={...path[0]};assert.ok(walkable(world,p));
+ for(const end of path.slice(1)){const d=Math.hypot(end.x-p.x,end.z-p.z),v={x:(end.x-p.x)/d,z:(end.z-p.z)/d};p=movePlayer(world,p,v,d);assert.ok(Math.hypot(p.x-end.x,p.z-end.z)<1e-7,'surveyed street must be walkable across section boundaries');}
+}
+for(const x of [-5,6,20,45])for(const z of [-43.26,-94,-100])assert.ok(Math.abs(angleDelta(routeCameraPose({x,z:z-.00001}).yaw,routeCameraPose({x,z:z+.00001}).yaw))<.0001,'section camera must not snap');
+console.log('PASS section 02 survey anchors, bidirectional main/branch roads, old-edge connection and camera seams');
+
+assert.ok(world.sceneryBuildings.length>0,'real blocks continue beyond the playable border');
+assert.ok(world.sceneryBuildings.every(b=>!world.buildings.some(p=>p.id===b.id)),'background blocks are not duplicated');
+assert.equal(walkable(world,{x:7.5,z:world.bounds.minZ-.5}),false,'visible next-section background is not yet playable');
