@@ -43,28 +43,36 @@ export function movePlayer(world,p,vector,distance){
  return q;
 }
 export class TurnWalkInput{
- constructor(){this.held=new Map();this.age=0;this.signature='';}
+ constructor(){this.held=new Map();this.age=0;this.signature='';this.heading=null;}
  press(id,x,z){this.held.set(id,{x,z});}
- release(id){this.held.delete(id);}
- clear(){this.held.clear();this.age=0;this.signature='';}
+ release(id){this.held.delete(id);if(!this.held.size)this.clear();}
+ clear(){this.held.clear();this.age=0;this.signature='';this.heading=null;}
  update(dt,yaw){let x=0,z=0;for(const v of this.held.values()){x+=v.x;z+=v.z;}x=Math.sign(x);z=Math.sign(z);const signature=x+','+z;
-  if(signature!==this.signature){this.age=0;this.signature=signature;}
-  // Resolve against the visible camera every frame, even while a key or touch
-  // remains held. Camera rotation must not restart the turn-before-walk delay.
-  const vector=cameraVector(x,z,yaw),moving=(x!==0||z!==0);this.age+=dt;
+  if(signature!==this.signature){this.age=0;this.signature=signature;this.heading=yaw;}
+  // A new direction uses the visible camera. Holding it keeps a straight world
+  // heading: an automatic camera blend must never steer the player's feet.
+  const vector=cameraVector(x,z,this.heading??yaw),moving=(x!==0||z!==0);this.age+=dt;
   return {vector,facing:moving,walking:moving&&this.age>=.15};
  }
 }
 export function angleDelta(a,b){return Math.atan2(Math.sin(b-a),Math.cos(b-a));}
-export const REGION_YAW={station:-Math.PI*35/180,yonsei:0,plaza:Math.PI/6};
+// Surveyed Yonsei-ro centreline (OSM way 383312033), south to north.
+// Keep the road upright instead of introducing a decorative 35° steering arc.
+export const STREET_ROUTE=[[237.28,551.68],[239.88,468.64],[240.68,431.24]].map(toWorld);
+const roadYaw=(a,b)=>Math.atan2(a.x-b.x,a.z-b.z);
+export const REGION_YAW={station:roadYaw(STREET_ROUTE[0],STREET_ROUTE[1]),yonsei:roadYaw(STREET_ROUTE[0],STREET_ROUTE[1]),plaza:Math.PI/6};
 const smooth=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);};
 // Position-based blends work in both travel directions and never depend on
 // catching a one-frame region-enter event. Stopping also stops route progress.
 export function routeCameraPose(p){
- if(p.z>6)return {region:'station',label:'신촌역',yaw:REGION_YAW.station};
- if(p.z>-5){const t=smooth((6-p.z)/11);return {region:'entrance',label:'연세로 진입',yaw:REGION_YAW.station*(1-t)};}
- if(p.z>-24)return {region:'yonsei',label:'연세로',yaw:REGION_YAW.yonsei};
- const t=smooth((-24-p.z)/8);return {region:'plaza',label:'빨잠 광장',yaw:REGION_YAW.plaza*t};
+ const bend=smooth((STREET_ROUTE[1].z+2-p.z)/4);
+ const streetYaw=REGION_YAW.yonsei+angleDelta(REGION_YAW.yonsei,roadYaw(STREET_ROUTE[1],STREET_ROUTE[2]))*bend;
+ if(p.z>6)return {region:'station',label:'신촌역',yaw:streetYaw};
+ if(p.z>-5)return {region:'entrance',label:'연세로 진입',yaw:streetYaw};
+ if(p.z>-24)return {region:'yonsei',label:'연세로',yaw:streetYaw};
+ // Turn to show the plaza only after leaving the main road toward U-PLEX.
+ const t=smooth((-24-p.z)/8)*smooth((3-p.x)/5);
+ return {region:'plaza',label:t>0?'빨잠 광장':'연세로 북쪽',yaw:streetYaw+angleDelta(streetYaw,REGION_YAW.plaza)*t};
 }
 export class RouteCamera{
  constructor(position){this.reset(position);}
