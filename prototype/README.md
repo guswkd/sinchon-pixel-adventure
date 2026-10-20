@@ -1,9 +1,9 @@
-# 회전하는 신촌 — outdoor sections 01 + 02
+# 회전하는 신촌 — outdoor sections 01 + 02 + 03
 
 Separate from the original game. Open `prototype/index.html` through HTTP(S).
 
 - Vendored Three.js 0.160.1 (MIT), no external runtime/CDN dependency.
-- Original surveyed `CITY_GEOGRAPHY` is cropped to Sinchon Station–Hyundai–U-PLEX–northern Yonsei-ro–the first Myeongmul-gil stretch–Changchun Church and uniformly compressed into a small walking scene. Building heights, facades and street props are illustrative, not surveyed.
+- Original surveyed `CITY_GEOGRAPHY` is cropped to Sinchon Station–Hyundai–U-PLEX–northern Yonsei-ro–the first Myeongmul-gil stretch–Changchun Church–Seongsan-ro crossing–Yonsei main gate–Baekyang-ro entrance and uniformly compressed into a small walking scene. Building heights, facades and street props are illustrative, not surveyed.
 - Polygon ground and extruded buildings, nearest-filtered textures and a recoloured HGSS Ethan field sprite and existing NPC sprites (source credits in `assets/ethan-source.md`).
 - Automatic camera follows the local tangent of the surveyed road under the player, using movement alignment and distance hysteresis to choose branches. Tangents are sampled over an 8-unit arc; compatible survey-way endpoints are joined. Stopping/reversing does not select a new view, and angular speed is limited to 0.75 rad/s.
 - Orthographic camera: Q/R look around by 45 degrees (walking 0.7 world units resumes auto); C explicitly toggles auto/manual; Z toggles distance.
@@ -18,7 +18,7 @@ Validation: `node tests/prototype.test.mjs` from repository root. Includes route
 
 1. **Sinchon Station → Hyundai → U-PLEX (01)**: camera aligned to the surveyed Yonsei-ro centreline (about −1.79°), with no artificial station-to-street turn. Actual local street bends drive the view; there is no preset plaza angle. Camera look-ahead rotates about the player, so rotating in place does not move the character on screen. UI shows automatic/manual/temporary look state. Desktop viewport fills the screen frame. Original game links to the HTTPS prototype, including when opened as a local file.
 2. **Northern Yonsei-ro + Myeongmul-gil (02, open)**: continuous extension from the old y=422 boundary to y=258, east edge x=350. The surveyed fork, side streets and Changchun Church footprint are retained. Seven visit points, numbered mini-map and current-section highlighting are available. New shop facades have doors/show windows; roof details are limited. Heights and facades remain illustrative.
-3. Seongsan-ro crossing → Yonsei main gate: next section, not yet walkable. Real surrounding blocks are rendered as background beyond the playable edge.
+3. **Seongsan-ro crossing → Yonsei main gate → Baekyang-ro entrance (03, open)**: bounds extend north to y=145. Saved crossing polylines, gate POI 5799952872, campus garden polygons and Baekyang-ro are retained. The engineering/hospital footprints have illustrative facades and signs. Ten visit points and three map sections are available. The deeper campus remains background.
 4. Subway and department-store underground connections: later implementation; not accessible in this 3D prototype.
 
 Current camera scope is the walking presentation, not a fresh geographical survey. Station approach tests cover the complete outward and return transition, boundary stability, explicit manual mode, automatic restoration after looking around, and return-to-station reset.
@@ -43,3 +43,5 @@ Camera bearings follow the local geometry of the selected surveyed road, includi
 Tests cover all seven reachable destinations, north/south traversal of the surveyed main street and branch, curved-road tangents, fork selection, stationary/reverse stability and bounded rotation, and the previous controls/bridge regressions. Manual browser checks cover the station-to-northern-end run, Changchun Church approach/interaction, diagonal Myeongmul-gil travel and mobile held-button return. The seven-point map and controls were checked at 390 × 844. Sources and exact scope are recorded in `reference/map-audit/section-02.md`.
 
 Camera road-following revision: direct keyboard runs verified the station approach, automatic Myeongmul-gil entry without Q/R, onward travel and reverse travel. Synthetic curve/fork tests and the real survey connector test complement the existing 30/60/120 Hz held-heading tests. This camera follows road orientation; it does not automatically steer the character around curves.
+
+Section 03 validation: all ten landmarks are reachable from station. Tests traverse the saved diagonal crosswalk and campus entrance in both directions and check Baekyang-ro camera selection. Direct browser play covered station-to-gate, the gate dialogue and Baekyang-ro arrival. See `reference/map-audit/section-03.md`.

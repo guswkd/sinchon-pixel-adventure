@@ -125,7 +125,7 @@ console.log('PASS surveyed 4F bridge clearance, reachable underpass, two-way tra
 
 // Section 02 follows the saved survey, remains connected across the old edge,
 // and keeps both arterial routes open in both directions.
-assert.equal(SURVEY_BOUNDS.top,258);assert.equal(sectionAt(toWorld([241,410])),2);
+assert.equal(SURVEY_BOUNDS.top,145);assert.equal(sectionAt(toWorld([241,410])),2);
 assert.equal(sectionAt(world.spawn),1);
 assert.ok(world.buildings.some(b=>b.name==='창천교회'&&b.type==='church'));
 const namedRoads=world.roads.filter(r=>r.name==='연세로'||r.name==='명물길');
@@ -140,3 +140,23 @@ console.log('PASS section 02 survey anchors, bidirectional main/branch roads, ol
 assert.ok(world.sceneryBuildings.length>0,'real blocks continue beyond the playable border');
 assert.ok(world.sceneryBuildings.every(b=>!world.buildings.some(p=>p.id===b.id)),'background blocks are not duplicated');
 assert.equal(walkable(world,{x:7.5,z:world.bounds.minZ-.5}),false,'visible next-section background is not yet playable');
+
+// Section 03: cross the surveyed diagonal crossing, enter the saved gate POI,
+// then follow Baekyang-ro. Test exact paths in both directions, not just BFS.
+assert.equal(sectionAt(toWorld([243,257])),3);
+assert.equal(sectionAt(toWorld([243,259])),2);
+const gatePOI=sandbox.data.pois.find(p=>p.id==='5799952872');
+assert.deepEqual(world.landmarks.find(p=>p.id==='yonsei').x,toWorld([gatePOI.x,gatePOI.y]).x);
+assert.deepEqual(world.landmarks.find(p=>p.id==='yonsei').z,toWorld([gatePOI.x,gatePOI.y]).z);
+const crossing=world.roads.find(r=>r.id==='1182081723');
+const campus=world.roads.find(r=>r.id==='123432894');
+assert.ok(crossing.crossing);assert.equal(campus.name,'백양로');
+const sectionThreeRoute=[...[[243,268],[244.6,259.52],[244.08,235.68],[249.08,234.92]].map(toWorld),...crossing.points.slice(0,-1).reverse(),toWorld([234.76,189.12]),toWorld([243,157])];
+for(const path of [sectionThreeRoute,[...sectionThreeRoute].reverse()]){
+ let p={...path[0]};
+ for(const end of path.slice(1)){const d=Math.hypot(end.x-p.x,end.z-p.z);p=movePlayer(world,p,{x:(end.x-p.x)/d,z:(end.z-p.z)/d},d);assert.ok(Math.hypot(p.x-end.x,p.z-end.z)<1e-7,'crossing and campus route are unobstructed');}
+}
+const campusView=new RouteCamera(toWorld([234.76,189.12]),world.roads);
+traverse(campusView,[toWorld([234.76,189.12]),toWorld([243,157])]);assert.equal(campusView.pose.label,'백양로');
+assert.ok(world.buildings.some(b=>b.type==='campus'));assert.ok(world.buildings.some(b=>b.type==='hospital'));
+console.log('PASS section 03 gate POI, real crosswalk, two-way campus approach and Baekyang camera');

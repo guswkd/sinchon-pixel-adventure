@@ -2,13 +2,13 @@
 // uniformly for a walkable diorama, never rasterized into stair-step tiles.
 export const SCALE=.42;
 export const PLAYER_HEIGHT=2.8;
-export const SURVEY_BOUNDS={left:145,right:350,top:258,bottom:616};
+export const SURVEY_BOUNDS={left:145,right:350,top:145,bottom:616};
 const ORIGINAL_BOUNDS={left:145,right:300,top:422,bottom:616};
 export const toWorld=([x,z])=>({x:(x-225)*SCALE,z:(z-525)*SCALE});
 export function inside(p,points){let c=false;for(let i=0,j=points.length-1;i<points.length;j=i++){const a=points[i],b=points[j];if((a.z>p.z)!==(b.z>p.z)&&p.x<(b.x-a.x)*(p.z-a.z)/(b.z-a.z)+a.x)c=!c;}return c;}
 export function segmentDistance(p,a,b){const dx=b.x-a.x,dz=b.z-a.z,l=dx*dx+dz*dz;const t=l?Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.z-a.z)*dz)/l)):0;return Math.hypot(p.x-a.x-t*dx,p.z-a.z-t*dz);}
 function intersects(points,b=SURVEY_BOUNDS){return Math.max(...points.map(p=>p[0]))>=b.left&&Math.min(...points.map(p=>p[0]))<=b.right&&Math.max(...points.map(p=>p[1]))>=b.top&&Math.min(...points.map(p=>p[1]))<=b.bottom;}
-export function sectionAt(p){return p.z<toWorld([0,422]).z?2:1;}
+export function sectionAt(p){return p.z<toWorld([0,258]).z?3:p.z<toWorld([0,422]).z?2:1;}
 const widths={primary:8.4,secondary:6.6,tertiary:4.6,residential:2.7,living_street:2.7,unclassified:2.5,service:1.8,pedestrian:3.4,footway:1.5,path:1.5,steps:1.4};
 export function createWorld(source){
  const bounds={minX:(SURVEY_BOUNDS.left-225)*SCALE,maxX:(SURVEY_BOUNDS.right-225)*SCALE,minZ:(SURVEY_BOUNDS.top-525)*SCALE,maxZ:(SURVEY_BOUNDS.bottom-525)*SCALE};
@@ -17,10 +17,10 @@ export function createWorld(source){
  const oldStyles=new Map(source.buildings.filter(b=>intersects(b.points,ORIGINAL_BOUNDS)).map((b,i)=>[b.id,i]));
  const makeBuilding=b=>{
   const index=oldStyles.get(b.id)??Number(b.id)%97;
-  const points=b.points.map(toWorld);const type=b.buildingType==='bridge'?'bridge':b.branch==='신촌점'?'hyundai':b.branch==='U Plex'?'uplex':b.name==='창천교회'?'church':'shop';
+  const points=b.points.map(toWorld);const type=b.buildingType==='bridge'?'bridge':b.branch==='신촌점'?'hyundai':b.branch==='U Plex'?'uplex':b.name==='창천교회'?'church':b.name==='공학원 (102)'?'campus':b.name==='연세암병원'?'hospital':'shop';
   const center={x:points.reduce((a,p)=>a+p.x,0)/points.length,z:points.reduce((a,p)=>a+p.z,0)/points.length};
   const metresToWorld=SCALE/(source.metresPerTile||1.5),baseHeight=Math.max(0,(b.minHeight||0)*metresToWorld);
-  const height=baseHeight>0?Math.max(baseHeight+.2,(b.height||b.minHeight+3)*metresToWorld):type==='hyundai'?7:type==='uplex'?8.2:type==='church'?6.8:3+(index%4)*.7;
+  const height=baseHeight>0?Math.max(baseHeight+.2,(b.height||b.minHeight+3)*metresToWorld):type==='hyundai'?7:type==='uplex'?8.2:type==='church'?6.8:type==='campus'?7.5:type==='hospital'?10:3+(index%4)*.7;
   return {id:b.id,name:b.name,points,type,center,baseHeight,height,index,newSection:!oldStyles.has(b.id)};
  };
  const buildings=source.buildings.filter(b=>intersects(b.points)).map(makeBuilding);
@@ -38,7 +38,10 @@ export function createWorld(source){
   {id:'crossroad',name:'연세로사거리',...toWorld([241,424]),text:'연세로와 명물길이 갈라지는 곳이에요. 북쪽으로 연세로 상가와 창천교회, 동북쪽으로 명물길이 이어져요.'},
   {id:'myeongmul',name:'명물길',...toWorld([310.88,365.6]),text:'연세로에서 동북쪽으로 뻗는 명물길이에요. 연결 골목으로 연세로에 다시 돌아갈 수 있어요. 이번 구간은 명물길 1차 구간까지 열려 있어요.'},
   {id:'church',name:'창천교회 앞',...toWorld([267,282]),text:'창천교회는 연세로 38에 있어요. 연세로 북쪽과 명물길 사이 상가 구간을 걸어 여기까지 왔네요. 건물 안은 아직 들어갈 수 없어요.'},
-  {id:'north',name:'연세로 북쪽',...toWorld([243,268]),text:'이번 산책 구간의 북쪽 끝이에요. 성산로를 건너 연세대 정문으로 이어지는 구간은 다음에 넓힐 예정이에요.'}
+  {id:'north',name:'연세로 북쪽',...toWorld([243,268]),text:'03 구간으로 이어지는 길이에요. 성산로 횡단보도를 건너면 연세대 정문과 백양로 초입에 닿아요.'},
+  {id:'crossing',name:'성산로 횡단보도',...toWorld([249.08,234.92]),text:'연세로 북쪽 끝의 성산로예요. 표시된 횡단보도를 따라 북쪽 정문 광장으로 건너갈 수 있어요.'},
+  {id:'yonsei',name:'연세대 정문',...toWorld([235,189]),text:'연세대학교 신촌캠퍼스 정문에 도착했어요. 신촌역에서 연세로와 성산로를 지나 이어지는 길이에요. 안쪽의 백양로 초입까지 걸어볼 수 있어요.'},
+  {id:'baekyang',name:'백양로 초입',...toWorld([243,157]),text:'백양로의 첫 구간이에요. 왼쪽에는 공학원, 오른쪽에는 의료원 방향 길이 있어요. 이번 구간은 여기까지이며 캠퍼스 안쪽과 건물 실내는 다음에 이어갈 예정이에요.'}
  ];
  const world={bounds,roads,buildings,sceneryBuildings,sceneryRoads,parks,exits,landmarks};
  world.spawn=findFree(world,toWorld([235,543]));
