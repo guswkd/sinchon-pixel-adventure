@@ -76,47 +76,91 @@ export function angleDelta(a,b){return Math.atan2(Math.sin(b-a),Math.cos(b-a));}
 export const STREET_ROUTE=[[237.28,551.68],[239.88,468.64],[240.68,431.24],[240.64,416.88],[240.12,395.08],[239.96,391.4],[240.4,332.44],[240.52,306.12],[240.88,298.96],[242.4,295.32],[242.8,291.88],[243,272.28]].map(toWorld);
 export const MYEONGMUL_ROUTE=[[273.24,399.4],[310.88,365.6],[346.28,331.4]].map(toWorld);
 const roadYaw=(a,b)=>Math.atan2(a.x-b.x,a.z-b.z);
-export const REGION_YAW={station:roadYaw(STREET_ROUTE[0],STREET_ROUTE[1]),yonsei:roadYaw(STREET_ROUTE[0],STREET_ROUTE[1]),plaza:Math.PI/6};
-const smooth=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);};
-function streetPoint(z){
- for(let i=1;i<STREET_ROUTE.length;i++){const a=STREET_ROUTE[i-1],b=STREET_ROUTE[i];if(z>=b.z||i===STREET_ROUTE.length-1){const t=Math.max(0,Math.min(1,(a.z-z)/(a.z-b.z)));return {x:a.x+(b.x-a.x)*t,z:a.z+(b.z-a.z)*t};}}
+export const REGION_YAW={station:roadYaw(STREET_ROUTE[0],STREET_ROUTE[1]),yonsei:roadYaw(STREET_ROUTE[0],STREET_ROUTE[1])};
+// Camera paths use the same surveyed polylines that draw the streets. Join
+// survey-way boundaries only when their tangents continue the same road.
+export function cameraRoads(roads){
+ const eligible=roads.filter(r=>r.points.length>1&&!r.area&&!r.crossing&&r.name&&!['steps','path','footway'].includes(r.kind));
+ return eligible.map(r=>{
+  let points=[...r.points];
+  for(const end of [0,1]){
+   const tip=end?points.at(-1):points[0],inner=end?points.at(-2):points[1];
+   const dx=tip.x-inner.x,dz=tip.z-inner.z,l=Math.hypot(dx,dz);let best=null,score=.85;
+   for(const other of eligible){if(other===r||other.name!==r.name)continue;
+    for(const chain of [other.points,[...other.points].reverse()]){
+     if(Math.hypot(chain[0].x-tip.x,chain[0].z-tip.z)>.05)continue;
+     const vx=chain[1].x-tip.x,vz=chain[1].z-tip.z,d=(dx*vx+dz*vz)/(l*Math.hypot(vx,vz));
+     if(d>score){score=d;best=chain.slice(1);}
+    }
+   }
+   if(best)points=end?[...points,...best]:[...best].reverse().concat(points);
+  }
+  const lengths=[0];for(let i=1;i<points.length;i++)lengths.push(lengths.at(-1)+Math.hypot(points[i].x-points[i-1].x,points[i].z-points[i-1].z));
+  return {...r,points,lengths};
+ });
 }
-function streetCameraYaw(z){
- if(z>=STREET_ROUTE[1].z+4)return REGION_YAW.yonsei;
- const a=streetPoint(z+4),b=streetPoint(z-4);
- return Math.hypot(a.x-b.x,a.z-b.z)>.001?roadYaw(a,b):roadYaw(STREET_ROUTE.at(-2),STREET_ROUTE.at(-1));
-}
-// Position-based blends work in both travel directions and never depend on
-// catching a one-frame region-enter event. Stopping also stops route progress.
-export function routeCameraPose(p){
- const streetYaw=streetCameraYaw(p.z);
- if(p.z>6)return {region:'station',label:'신촌역',yaw:streetYaw};
- if(p.z>-5)return {region:'entrance',label:'연세로 진입',yaw:streetYaw};
- if(p.z>-24)return {region:'yonsei',label:'연세로',yaw:streetYaw};
- // Turn to show the plaza only after leaving the main road toward U-PLEX.
- if(sectionAt(p)===2){
-  const branch=smooth((p.x-10)/10)*smooth((-43.26-p.z)/10)*smooth((p.z+100)/12);
-  const branchYaw=roadYaw(MYEONGMUL_ROUTE[0],MYEONGMUL_ROUTE.at(-1));
-  return {region:branch>.1?'myeongmul':'north',label:branch>.1?'명물길':p.z<-94?'창천교회 앞':'연세로 상가',yaw:streetYaw+angleDelta(streetYaw,branchYaw)*branch};
+function pathPoint(road,d){
+ d=Math.max(0,Math.min(road.lengths.at(-1),d));
+ for(let i=1;i<road.points.length;i++)if(d<=road.lengths[i]){
+  const a=road.points[i-1],b=road.points[i],t=(d-road.lengths[i-1])/(road.lengths[i]-road.lengths[i-1]||1);
+  return {x:a.x+(b.x-a.x)*t,z:a.z+(b.z-a.z)*t};
  }
- const t=smooth((-24-p.z)/8)*smooth((3-p.x)/5)*smooth((p.z+43.26)/7);
- return {region:'plaza',label:t>0?'빨잠 광장':'연세로 북쪽',yaw:streetYaw+angleDelta(streetYaw,REGION_YAW.plaza)*t};
+ return road.points.at(-1);
+}
+function projectRoad(p,road){
+ let distance=Infinity,along=0;
+ for(let i=1;i<road.points.length;i++){
+  const a=road.points[i-1],b=road.points[i],dx=b.x-a.x,dz=b.z-a.z,l=Math.hypot(dx,dz);if(!l)continue;
+  const t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.z-a.z)*dz)/(l*l))),d=Math.hypot(p.x-a.x-t*dx,p.z-a.z-t*dz);
+  if(d<distance){distance=d;along=road.lengths[i-1]+t*l;}
+ }
+ // A short arc-length window rounds survey vertices without replacing an
+ // entire curved street with its end-to-end bearing.
+ const a=pathPoint(road,along-4),b=pathPoint(road,along+4);
+ return {road,distance,yaw:roadYaw(a,b)};
+}
+function equivalentYaw(yaw,reference){
+ const delta=angleDelta(reference,yaw);return reference+(Math.abs(delta)>Math.PI/2?angleDelta(reference,yaw+Math.PI):delta);
+}
+const fallbackRoads=cameraRoads([{id:'yonsei',name:'연세로',points:STREET_ROUTE},{id:'myeongmul',name:'명물길',points:MYEONGMUL_ROUTE}]);
+export function routeCameraPose(p,roads=fallbackRoads,reference=0){
+ const closest=roads.map(r=>projectRoad(p,r)).sort((a,b)=>a.distance-b.distance)[0];
+ return roadPose(closest,reference);
+}
+function roadPose(hit,reference){
+ if(!hit)return {region:'street',label:'거리',yaw:reference};
+ return {region:hit.road.name==='명물길'?'myeongmul':'street',label:hit.road.name,roadId:hit.road.id,yaw:equivalentYaw(hit.yaw,reference)};
 }
 export class RouteCamera{
- constructor(position){this.reset(position);}
- reset(position){this.pose=routeCameraPose(position);this.yaw=this.targetYaw=this.pose.yaw;this.enabled=true;this.preview=null;}
+ constructor(position,roads){this.roads=roads?cameraRoads(roads):fallbackRoads;this.reset(position);}
+ reset(position){this.pose=routeCameraPose(position,this.roads);this.selected=this.pose.roadId;this.yaw=this.targetYaw=this.pose.yaw;this.enabled=true;this.preview=null;this.sample={...position};this.motion=null;}
  rotate(delta,position){this.targetYaw+=delta;if(this.enabled)this.preview={...position};}
- toggle(position){this.enabled=!this.enabled;this.preview=null;if(this.enabled)this.targetYaw=routeCameraPose(position).yaw;}
+ toggle(position){this.enabled=!this.enabled;this.preview=null;if(this.enabled)this.targetYaw=this.pose.yaw;}
  update(position,dt){
-  this.pose=routeCameraPose(position);
-  // Manual looking is temporary while auto is on. Explicitly switching auto
-  // off is the only way to keep a fixed manual view while walking.
+  const dx=position.x-this.sample.x,dz=position.z-this.sample.z,d=Math.hypot(dx,dz);
+  if(d>=.3){
+   this.motion={x:dx/d,z:dz/d};this.sample={...position};
+   const hits=this.roads.map(r=>projectRoad(position,r));
+   for(const h of hits){
+    const alignment=Math.abs(Math.sin(h.yaw)*this.motion.x+Math.cos(h.yaw)*this.motion.z);
+    h.score=h.distance+3*(1-alignment)-(h.road.id===this.selected ? .8 : 0);
+   }
+   hits.sort((a,b)=>a.score-b.score);
+   const current=hits.find(h=>h.road.id===this.selected),best=hits[0];
+   // Retain the current street in open squares and while standing still.
+   // Nearby parallel roads and crosswalks must not attract the camera.
+   if(best&&best.distance<Math.max(3,(best.road.width||1)/2+2)&&(!current||(best.score+.35<current.score&&best.distance+.6<current.distance)))this.selected=best.road.id;
+  }
+  const road=this.roads.find(r=>r.id===this.selected);
+  if(road)this.pose=roadPose(projectRoad(position,road),this.pose.yaw);
   if(this.preview&&Math.hypot(position.x-this.preview.x,position.z-this.preview.z)>=.7)this.preview=null;
   if(this.enabled&&!this.preview)this.targetYaw=this.pose.yaw;
-  this.yaw+=angleDelta(this.yaw,this.targetYaw)*(1-Math.exp(-5*Math.max(0,dt)));
+  // Bounded angular speed prevents a sharp junction from whipping the view.
+  const delta=angleDelta(this.yaw,this.targetYaw),step=delta*(1-Math.exp(-3*Math.max(0,dt))),limit=.75*Math.max(0,dt);
+  this.yaw+=Math.max(-limit,Math.min(limit,step));
  }
  get turning(){return Math.abs(angleDelta(this.yaw,this.targetYaw))>Math.PI/180;}
- get status(){if(!this.enabled)return '수동 시점 · 자동 버튼으로 복귀';if(this.preview)return '둘러보는 중 · 걸으면 자동 복귀';return '자동 · '+this.pose.label+(this.turning?' 방향으로 회전 중':' 시점');}
+ get status(){if(!this.enabled)return '수동 시점 · 자동 버튼으로 복귀';if(this.preview)return '둘러보는 중 · 걸으면 자동 복귀';return '자동 · '+this.pose.label+' 길 따라가기'+(this.turning?' · 회전 중':'');}
 }
 
 export class RunControl{

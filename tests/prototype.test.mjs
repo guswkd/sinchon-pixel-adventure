@@ -17,30 +17,44 @@ console.log('PASS camera-relative input: tap, hold, normalized diagonal, press-t
 const simple={bounds:{minX:-10,maxX:10,minZ:-10,maxZ:10},buildings:[{points:[{x:0,z:-2},{x:3,z:-2},{x:3,z:2},{x:0,z:2}]}]};
 const stopped=movePlayer(simple,{x:-3,z:0},{x:1,z:0},10);assert.ok(stopped.x<-.27,'swept collision prevents crossing a whole building');
 const slide=movePlayer(simple,{x:-.4,z:-1},{x:Math.SQRT1_2,z:Math.SQRT1_2},2);assert.ok(slide.x<0&&slide.z>-.2,'diagonal movement slides along a wall');
-assert.equal(inside({x:1,z:0},simple.buildings[0].points),true);assert.equal(routeCameraPose(toWorld([232,445])).region,'plaza');assert.ok(Math.abs(angleDelta(Math.PI-.1,-Math.PI+.1)-.2)<1e-9);
-console.log('PASS continuous collision, corner sliding, region camera and shortest-angle rotation');
+assert.equal(inside({x:1,z:0},simple.buildings[0].points),true);assert.ok(Math.abs(angleDelta(Math.PI-.1,-Math.PI+.1)-.2)<1e-9);
+console.log('PASS continuous collision, corner sliding, shortest-angle rotation');
 
-// A straight surveyed road must remain straight on screen; only entering the
-// western plaza rotates the automatic view. The road's small bend is retained.
+// Automatic turns come from surveyed local tangents, not region angles.
 const road=world.roads.find(r=>r.id==='383312033');
 assert.deepEqual(JSON.parse(JSON.stringify(road.points.slice(0,3))),STREET_ROUTE.slice(0,3));
-const rig=new RouteCamera(world.spawn),origin={...world.spawn};
-assert.equal(rig.yaw,REGION_YAW.station);
+const rig=new RouteCamera(world.spawn,world.roads),origin={...world.spawn};
+assert.ok(Math.abs(angleDelta(rig.yaw,REGION_YAW.station))<1e-8);
 for(let z=8;z>=-20;z-=.1){rig.update({x:origin.x,z},1/60);assert.ok(Math.abs(rig.yaw-REGION_YAW.yonsei)<.002,'no gratuitous rotation on the straight street');}
-for(let z=-20;z>=-35;z-=.1){rig.update({x:6,z},1/60);assert.ok(Math.abs(rig.yaw)<.04,'walking north on the street does not trigger the plaza turn');}
-const plaza={x:-3,z:-33};
-for(let i=0;i<180;i++)rig.update(plaza,1/60);
-assert.ok(Math.abs(rig.yaw-REGION_YAW.plaza)<.001,'entering the plaza still rotates automatically');
-for(let i=0;i<180;i++)rig.update(origin,1/60);
-assert.ok(Math.abs(rig.yaw-REGION_YAW.station)<.001,'return restores road-aligned view');
-for(const z of [6,-5,-24,-32])assert.ok(Math.abs(routeCameraPose({x:-1,z:z+.00001}).yaw-routeCameraPose({x:-1,z:z-.00001}).yaw)<.00001,'no region boundary snap');
-rig.rotate(Math.PI/4,origin);assert.equal(rig.enabled,true);
-rig.update(origin,1);assert.ok(rig.preview);assert.match(rig.status,/걸으면/);
-rig.update({x:origin.x+.8,z:origin.z},.1);assert.equal(rig.preview,null);assert.equal(rig.targetYaw,REGION_YAW.station);
+rig.reset(origin);rig.rotate(Math.PI/4,origin);rig.update(origin,1);assert.ok(rig.preview);assert.match(rig.status,/걸으면/);
+rig.update({x:origin.x+.8,z:origin.z},.1);assert.equal(rig.preview,null);
 rig.toggle(origin);rig.rotate(Math.PI/4,origin);const manual=rig.targetYaw;rig.update({x:origin.x,z:-10},1);assert.equal(rig.targetYaw,manual);
-rig.toggle({x:origin.x,z:-10});rig.update({x:origin.x,z:-10},1);assert.equal(rig.targetYaw,REGION_YAW.yonsei);
-rig.reset(origin);assert.equal(rig.enabled,true);assert.equal(rig.preview,null);assert.equal(rig.yaw,REGION_YAW.station);
-console.log('PASS surveyed road alignment, plaza-only turn, return route, temporary/manual camera and reset');
+rig.toggle(origin);rig.update(origin,1);assert.ok(Math.abs(angleDelta(rig.targetYaw,REGION_YAW.station))<1e-8);
+rig.reset(origin);assert.equal(rig.enabled,true);assert.equal(rig.preview,null);
+const curve=[{id:'curve',name:'Curved road',kind:'pedestrian',points:[{x:0,z:20},{x:0,z:0},{x:8,z:-16},{x:24,z:-24}]}];
+const curved=new RouteCamera({x:0,z:10},curve);
+function traverse(view,points){
+ for(let i=1;i<points.length;i++){
+  const a=points[i-1],b=points[i],n=Math.ceil(Math.hypot(b.x-a.x,b.z-a.z)/.07);
+  for(let j=1;j<=n;j++){const before=view.yaw;view.update({x:a.x+(b.x-a.x)*j/n,z:a.z+(b.z-a.z)*j/n},1/60);assert.ok(Math.abs(angleDelta(before,view.yaw))<=.75/60+1e-9,'bounded rotation speed');}
+ }
+}
+traverse(curved,curve[0].points);
+assert.ok(Math.abs(angleDelta(curved.targetYaw,-Math.atan2(16,8)))<1e-8,'camera follows final local tangent');
+for(let i=0;i<60;i++)curved.update({x:24,z:-24},1/60);
+assert.equal(curved.selected,'curve');
+traverse(curved,[...curve[0].points].reverse());assert.ok(Math.abs(curved.yaw)<.01,'reverse travel never flips camera 180 degrees');
+const junction=[{id:'main',name:'Main',kind:'tertiary',points:[{x:0,z:20},{x:0,z:-20}]},{id:'branch',name:'Branch',kind:'tertiary',points:[{x:0,z:0},{x:15,z:-10}]},{id:'parallel',name:'Parallel',kind:'tertiary',points:[{x:2,z:20},{x:2,z:-20}]}];
+const fork=new RouteCamera({x:0,z:10},junction);
+traverse(fork,[{x:0,z:10},{x:0,z:-15}]);assert.equal(fork.selected,'main','straight travel ignores nearby branches');
+fork.reset({x:0,z:10});traverse(fork,[{x:0,z:10},{x:0,z:0},{x:12,z:-8}]);assert.equal(fork.selected,'branch','taking the fork follows the branch');
+const selected=fork.selected;for(let i=0;i<200;i++)fork.update({x:12+(i%2)*.001,z:-8},1/60);assert.equal(fork.selected,selected,'idle jitter does not switch streets');
+assert.ok(Math.abs(angleDelta(fork.yaw,-Math.atan2(15,10)))<.001);
+// The real diagonal connector must be picked before the long Myeongmul stretch.
+const realFork=new RouteCamera(toWorld([240.68,431.24]),world.roads);
+traverse(realFork,[[240.68,431.24],[243.56,423.64],[247.28,423.68],[273.24,399.4],[310.88,365.6]].map(toWorld));
+assert.equal(realFork.pose.region,'myeongmul');assert.ok(Math.abs(angleDelta(realFork.yaw,-.84))<.12);
+console.log('PASS local curve tangents, real Myeongmul fork, intersection hysteresis, reverse/idle stability and manual camera');
 
 const {RunControl}=await import('../prototype/world.mjs');
 const {avatarPixels,AVATAR_PALETTE}=await import('../prototype/avatar.mjs');
@@ -79,7 +93,7 @@ for(const id of ['ArrowUp','pointer:1'])for(const [x,z] of [[0,-1],[0,1],[-1,0],
 // Walk and run from the actual station along Yonsei-ro. Check lateral drift
 // against the initial road bearing and make sure no wall-slide hides a failure.
 for(const speed of [4.1,7.4])for(const hz of [30,60,120]){
- const held=new TurnWalkInput(),view=new RouteCamera(world.spawn);let p={...world.spawn},travel=0;
+ const held=new TurnWalkInput(),view=new RouteCamera(world.spawn,world.roads);let p={...world.spawn},travel=0;
  held.press('up',0,-1);const forward=cameraVector(0,-1,view.yaw);
  for(let i=0;i<Math.ceil(38/speed*hz)+20;i++){
   const control=held.update(1/hz,view.yaw);
@@ -120,8 +134,8 @@ for(const route of [STREET_ROUTE,MYEONGMUL_ROUTE,[toWorld([240.68,431.24]),toWor
  let p={...path[0]};assert.ok(walkable(world,p));
  for(const end of path.slice(1)){const d=Math.hypot(end.x-p.x,end.z-p.z),v={x:(end.x-p.x)/d,z:(end.z-p.z)/d};p=movePlayer(world,p,v,d);assert.ok(Math.hypot(p.x-end.x,p.z-end.z)<1e-7,'surveyed street must be walkable across section boundaries');}
 }
-for(const x of [-5,6,20,45])for(const z of [-43.26,-94,-100])assert.ok(Math.abs(angleDelta(routeCameraPose({x,z:z-.00001}).yaw,routeCameraPose({x,z:z+.00001}).yaw))<.0001,'section camera must not snap');
-console.log('PASS section 02 survey anchors, bidirectional main/branch roads, old-edge connection and camera seams');
+
+console.log('PASS section 02 survey anchors, bidirectional main/branch roads, old-edge connection');
 
 assert.ok(world.sceneryBuildings.length>0,'real blocks continue beyond the playable border');
 assert.ok(world.sceneryBuildings.every(b=>!world.buildings.some(p=>p.id===b.id)),'background blocks are not duplicated');

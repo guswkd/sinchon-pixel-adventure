@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.min.js';
-import {createWorld,toWorld,inside,segmentDistance,sectionAt,walkable,findFree,movePlayer,TurnWalkInput,RouteCamera,RunControl,SCALE,PLAYER_HEIGHT} from './world.mjs?v=7';
+import {createWorld,toWorld,inside,segmentDistance,sectionAt,walkable,findFree,movePlayer,TurnWalkInput,RouteCamera,RunControl,SCALE,PLAYER_HEIGHT} from './world.mjs?v=8';
 import {paintAvatar} from './avatar.mjs?v=3';
 const sprint=new RunControl();
 const $=s=>document.querySelector(s),canvas=$('#scene');
@@ -12,7 +12,7 @@ try{renderer=new THREE.WebGLRenderer({canvas,antialias:false,alpha:false,powerPr
 renderer.setPixelRatio(1);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.setClearColor('#b8c9ac');
 const scene=new THREE.Scene();scene.background=new THREE.Color('#bdcdae');scene.fog=new THREE.Fog('#bdcdae',95,150);
 scene.add(new THREE.HemisphereLight('#fff3d5','#8d9c8a',1.3));const sun=new THREE.DirectionalLight('#fff2ce',1.0);sun.position.set(-40,65,30);scene.add(sun);
-const camera=new THREE.OrthographicCamera(-24,24,16,-16,.1,200);const view=new RouteCamera(world.spawn);let yaw=view.yaw,zoomed=false;
+const camera=new THREE.OrthographicCamera(-24,24,16,-16,.1,200);const view=new RouteCamera(world.spawn,world.roads);let yaw=view.yaw,zoomed=false;
 let player={...world.spawn},facing={x:0,z:1},distance=0,walkClock=0,walking=false,dialog=false,mapOpen=false,last=0,noticeTimer=0;
 const visited=new Set(),buildingVisuals=[],actors=[],buildingMeshes=[];
 const follow=new THREE.Vector3(player.x,0,player.z);
