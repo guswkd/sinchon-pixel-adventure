@@ -9,9 +9,9 @@ $('#route-stops').innerHTML=world.landmarks.map((p,i)=>`<span data-stop="${p.id}
 $('#map-legend').innerHTML=world.landmarks.map((p,i)=>`<span><b>${i+1}</b> ${p.name}</span>`).join('');
 let renderer;
 try{renderer=new THREE.WebGLRenderer({canvas,antialias:false,alpha:false,powerPreference:'low-power'});}catch(error){$('#loading').textContent='이 브라우저에서는 입체 화면을 켤 수 없어요. 위의 기존 신촌 모험으로 돌아갈 수 있어요.';throw error;}
-renderer.setPixelRatio(1);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.setClearColor('#b8c9ac');
-const scene=new THREE.Scene();scene.background=new THREE.Color('#bdcdae');scene.fog=new THREE.Fog('#bdcdae',95,150);
-scene.add(new THREE.HemisphereLight('#fff3d5','#8d9c8a',1.3));const sun=new THREE.DirectionalLight('#fff2ce',1.0);sun.position.set(-40,65,30);scene.add(sun);
+renderer.setPixelRatio(1);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.setClearColor('#c5e5fa');
+const scene=new THREE.Scene();scene.background=new THREE.Color('#c5e5fa');scene.fog=new THREE.Fog('#c5e5fa',95,150);
+scene.add(new THREE.HemisphereLight('#ffffff','#a8bdd8',2.0));const sun=new THREE.DirectionalLight('#fff9ee',1.1);sun.position.set(-40,65,30);scene.add(sun);
 const camera=new THREE.OrthographicCamera(-24,24,16,-16,.1,200);const view=new RouteCamera(world.spawn,world.roads);let yaw=view.yaw,zoomed=false;
 let player={...world.spawn},facing={x:0,z:1},distance=0,walkClock=0,walking=false,dialog=false,mapOpen=false,last=0,noticeTimer=0;
 const visited=new Set(),buildingVisuals=[],actors=[],buildingMeshes=[];
@@ -26,19 +26,19 @@ function ribbon(points,width,color,y){for(let i=1;i<points.length;i++){const a=p
  for(const p of points)disk(p.x,p.z,width/2,color,y+.0002,1,true);
 }
 function texture(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const tex=new THREE.CanvasTexture(c);tex.magFilter=THREE.NearestFilter;tex.minFilter=THREE.NearestFilter;tex.colorSpace=THREE.SRGBColorSpace;return tex;}
-const paving=texture(64,64,(c)=>{c.fillStyle='#e2ddc7';c.fillRect(0,0,64,64);c.fillStyle='#d5cfb8';for(let i=0;i<64;i+=16){c.fillRect(0,i,64,1);c.fillRect(i,0,1,64);}c.fillStyle='#eae4d1';for(let i=0;i<24;i++)c.fillRect(i*17%64,i*29%64,1,1);});paving.wrapS=paving.wrapT=THREE.RepeatWrapping;paving.repeat.set(22,26);
+const paving=texture(64,64,(c)=>{c.fillStyle='#eee8dc';c.fillRect(0,0,64,64);c.fillStyle='#d7d9d8';for(let i=0;i<64;i+=16){c.fillRect(0,i,64,1);c.fillRect(i,0,1,64);}c.fillStyle='#fff9ed';for(let i=0;i<24;i++)c.fillRect(i*17%64,i*29%64,1,1);});paving.wrapS=paving.wrapT=THREE.RepeatWrapping;paving.repeat.set(22,26);
 const groundWidth=world.bounds.maxX-world.bounds.minX+48,groundDepth=world.bounds.maxZ-world.bounds.minZ+48;
 paving.repeat.set(groundWidth/6.36,groundDepth/6.15);
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(groundWidth,groundDepth),new THREE.MeshLambertMaterial({map:paving}));ground.rotation.x=-Math.PI/2;ground.position.set((world.bounds.minX+world.bounds.maxX)/2,-.05,(world.bounds.minZ+world.bounds.maxZ)/2);scene.add(ground);
-for(const p of world.parks)flat(p.points,'#9eb57c',.005);
+for(const p of world.parks)flat(p.points,'#89c96b',.005);
 const renderRoads=[...world.roads,...world.sceneryRoads];
 const motor=renderRoads.filter(r=>!r.pedestrian&&!r.area);
-for(const r of motor)ribbon(r.points,r.width+1.4,'#f0e6cb',.015);
-for(const r of motor)ribbon(r.points,r.width,'#8f9b95',.035);
-for(const r of renderRoads.filter(r=>r.area))flat(r.points,'#e6d6b5',.018);
+for(const r of motor)ribbon(r.points,r.width+1.4,'#faf3e4',.015);
+for(const r of motor)ribbon(r.points,r.width,'#8295ac',.035);
+for(const r of renderRoads.filter(r=>r.area))flat(r.points,'#f3dcc4',.018);
 // Crossings are surveyed, not generated at arbitrary street intersections.
 for(const r of renderRoads.filter(r=>r.crossing)){
- for(let i=1;i<r.points.length;i++){const a=r.points[i-1],b=r.points[i],l=Math.hypot(b.x-a.x,b.z-a.z);for(let d=0;d<l;d+=.65){const t=d/l;const mesh=new THREE.Mesh(new THREE.PlaneGeometry(1.15,.3),material('#f4eaca'));mesh.rotation.set(-Math.PI/2,0,-Math.atan2(b.z-a.z,b.x-a.x)+Math.PI/2);mesh.position.set(a.x+(b.x-a.x)*t,.055,a.z+(b.z-a.z)*t);scene.add(mesh);}}
+ for(let i=1;i<r.points.length;i++){const a=r.points[i-1],b=r.points[i],l=Math.hypot(b.x-a.x,b.z-a.z);for(let d=0;d<l;d+=.65){const t=d/l;const mesh=new THREE.Mesh(new THREE.PlaneGeometry(1.15,.3),material('#fffdf4'));mesh.rotation.set(-Math.PI/2,0,-Math.atan2(b.z-a.z,b.x-a.x)+Math.PI/2);mesh.position.set(a.x+(b.x-a.x)*t,.055,a.z+(b.z-a.z)*t);scene.add(mesh);}}
 }
 function facadeTexture(type,index){return texture(64,64,c=>{
  if(type==='church'){
@@ -50,10 +50,10 @@ function facadeTexture(type,index){return texture(64,64,c=>{
   c.fillStyle='#6f939e';c.fillRect(0,0,64,64);c.fillStyle='#abd1d1';for(let x=3;x<64;x+=16)c.fillRect(x,5,11,53);
   c.fillStyle='#e1e2cf';for(let x=0;x<64;x+=16)c.fillRect(x,0,2,64);c.fillRect(0,0,64,4);c.fillRect(0,60,64,4);return;
  }
- const base=type==='uplex'?'#6d989f':type==='hyundai'?'#d8ceb4':['#c5baa2','#b89c87','#b2b3a0','#ccbda5'][index%4];
- c.fillStyle=base;c.fillRect(0,0,64,64);c.fillStyle=type==='uplex'?'#4a707c':'#8d9992';c.fillRect(7,8,20,31);c.fillRect(37,8,20,31);
- c.fillStyle=type==='uplex'?'#a4ced0':'#bdd2c9';c.fillRect(9,10,16,26);c.fillRect(39,10,16,26);c.fillStyle='#e6e9d3';c.fillRect(10,11,3,23);c.fillRect(40,11,3,23);
- c.fillStyle=type==='uplex'?'#426c76':'#f0e5c9';c.fillRect(0,43,64,4);c.fillStyle=type==='uplex'?'#86acac':'#aca28d';c.fillRect(0,62,64,2);c.fillRect(0,0,2,64);
+ const base=type==='uplex'?'#65adca':type==='hyundai'?'#f3e8d9':['#f0d8c2','#e6ad98','#c4dbe8','#f2e4b9'][index%4];
+ c.fillStyle=base;c.fillRect(0,0,64,64);c.fillStyle=type==='uplex'?'#4a707c':'#688ca9';c.fillRect(7,8,20,31);c.fillRect(37,8,20,31);
+ c.fillStyle=type==='uplex'?'#a4ced0':'#a3d8ef';c.fillRect(9,10,16,26);c.fillRect(39,10,16,26);c.fillStyle='#f3fcff';c.fillRect(10,11,3,23);c.fillRect(40,11,3,23);
+ c.fillStyle=type==='uplex'?'#426c76':'#fff5e4';c.fillRect(0,43,64,4);c.fillStyle=type==='uplex'?'#86acac':'#b4b5c3';c.fillRect(0,62,64,2);c.fillRect(0,0,2,64);
  });}
 function textTexture(text,bg='#304f49',fg='#fff4d6',width=256){return texture(width,40,(c,w,h)=>{if(bg){c.fillStyle=bg;c.fillRect(0,0,w,h);c.fillStyle=fg;c.fillRect(2,2,w-4,1);c.fillRect(2,h-3,w-4,1);}c.font='22px Galmuri, monospace';c.textAlign='center';c.textBaseline='middle';c.fillStyle=fg;c.fillText(text,w/2,h/2+1,w-12);});}
 function standingSign(text,x,z,y=1.4,width=3,bg='#38564b'){
@@ -88,23 +88,23 @@ function shopFront(b){
 }
 for(const b of [...world.buildings,...world.sceneryBuildings]){
  const wall=facadeTexture(b.type,b.index);wall.wrapS=wall.wrapT=THREE.RepeatWrapping;wall.repeat.set(.42,b.type==='bridge'?1/(b.height-b.baseHeight):.42);
- const mats=[new THREE.MeshLambertMaterial({color:b.type==='uplex'?'#8fb6b9':b.type==='hyundai'?'#e7dfc9':'#c7c4ad'}),new THREE.MeshLambertMaterial({map:wall})];
+ const mats=[new THREE.MeshLambertMaterial({color:b.type==='uplex'?'#79c8e2':b.type==='hyundai'?'#f6e8d5':['#afc7df','#d6a292','#95bbb9','#d0c0a3'][b.index%4]}),new THREE.MeshLambertMaterial({map:wall})];
  const mesh=new THREE.Mesh(new THREE.ExtrudeGeometry(shapeOf(b.points),{depth:b.height-b.baseHeight,bevelEnabled:false,steps:1}),mats);mesh.rotation.x=-Math.PI/2;mesh.position.y=b.baseHeight;scene.add(mesh);buildingMeshes.push(mesh);
  flat(b.points.map(p=>({x:p.x+1,z:p.z+.7})),'#5e7463',.008,.13);
- const roofRing=b.points.map(p=>new THREE.Vector3(p.x,b.height+.04,p.z));const rim=new THREE.Line(new THREE.BufferGeometry().setFromPoints(roofRing),new THREE.LineBasicMaterial({color:'#708173'}));scene.add(rim);
+ const roofRing=b.points.map(p=>new THREE.Vector3(p.x,b.height+.04,p.z));const rim=new THREE.Line(new THREE.BufferGeometry().setFromPoints(roofRing),new THREE.LineBasicMaterial({color:'#6f859f'}));scene.add(rim);
  const sign=b.type==='shop'?(b.newSection&&!b.scenery?shopFront(b):null):b.type==='bridge'?null:facadeSign(b,b.type==='uplex'?'U-PLEX':b.type==='church'?'창천교회':'HYUNDAI');
  const details=[];if(b.type==='bridge'){
   const lowerRim=new THREE.Line(new THREE.BufferGeometry().setFromPoints(b.points.map(p=>new THREE.Vector3(p.x,b.baseHeight,p.z))),new THREE.LineBasicMaterial({color:'#50646b'}));scene.add(lowerRim);details.push(lowerRim);
  }else if(b.type==='church'){
   details.push(box(.18,1.5,.18,'#e4d8b9',b.center.x,b.height,b.center.z),box(.9,.18,.18,'#e4d8b9',b.center.x,b.height+1.05,b.center.z));
  }else if(!b.scenery&&inside(b.center,b.points)&&(!b.newSection||b.index%3===0)){
-  const ac=box(1.5,.45,1,'#a3ad9d',b.center.x,b.height,b.center.z);details.push(ac);
-  const vent=box(1.1,.1,.75,'#7a897e',b.center.x,b.height+.45,b.center.z);details.push(vent);
+  const ac=box(1.5,.45,1,'#c5d5e0',b.center.x,b.height,b.center.z);details.push(ac);
+  const vent=box(1.1,.1,.75,'#8d9eb4',b.center.x,b.height+.45,b.center.z);details.push(vent);
  }
  buildingVisuals.push({mesh,mats,sign,rim,details});
 }
 // Original low-poly street furniture; no downloaded game art.
-function tree(x,z,size=1){if(!walkable(world,{x,z},.6))return;box(.24,1.1,.24,'#8b7956',x,0,z);const mesh=new THREE.Mesh(new THREE.IcosahedronGeometry(size,0),material('#809d63'));mesh.scale.y=1.2;mesh.position.set(x,1.75,z);scene.add(mesh);disk(x,z,.8,'#738566',.012,.22);}
+function tree(x,z,size=1){if(!walkable(world,{x,z},.6))return;box(.24,1.1,.24,'#8b7956',x,0,z);const mesh=new THREE.Mesh(new THREE.IcosahedronGeometry(size,0),material('#63b958'));mesh.scale.y=1.2;mesh.position.set(x,1.75,z);scene.add(mesh);disk(x,z,.8,'#738566',.012,.22);}
 for(const [x,z] of [[242,531],[242,513],[241,494],[241,477],[241,461],[235,436],[224,438],[218,442],[205,540],[195,550],[272,568],[263,548],[253,536],[213,547],[228,485]]){const p=toWorld([x,z]);tree(p.x,p.z,.75);}
 for(const [x,z] of [[245,408],[236,380],[245,356],[236,342],[246,318],[237,303],[250,270],[267,270],[291,272],[283,388],[307,370],[330,345]]){const p=toWorld([x,z]);tree(p.x,p.z,.65);}
 for(const [text,xy] of [['연세로 ↑ · 명물길 ↗',[244,420]],['명물길',[313,368]],['연세대 정문 방면 ↑',[245,266]]]){
