@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three.module.min.js';
 import {createWorld,toWorld,inside,walkable,findFree,movePlayer,TurnWalkInput,RouteCamera,RunControl,SCALE,PLAYER_HEIGHT} from './world.mjs?v=5';
-import {paintAvatar} from './avatar.mjs?v=2';
+import {paintAvatar} from './avatar.mjs?v=3';
 const sprint=new RunControl();
 const $=s=>document.querySelector(s),canvas=$('#scene');
 await document.fonts.ready;

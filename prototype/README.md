@@ -22,7 +22,7 @@ Validation: `node tests/prototype.test.mjs` from repository root. Includes route
 
 Current camera scope is the walking presentation, not a fresh geographical survey. Station approach tests cover the complete outward and return transition, boundary stability, explicit manual mode, automatic restoration after looking around, and return-to-station reset.
 
-Hero art: `avatar.mjs` draws a backward navy/gold cap, large readable eyes, a compact head/body silhouette, royal-blue varsity jacket, ivory sleeves, Y patches and short white sneakers in four directions. The original 2D hero is unchanged. Run input tests cover both Shift keys, release/blur cleanup, touch toggle persistence, diagonal speed and wall collisions.
+Hero art: `avatar.mjs` renders the original HGSS Ethan walking/running frames with only the two red clothing shades changed to blue. The indexed source frames and source credit are in `assets/ethan-frames.mjs` and `assets/ethan-source.md`. Original pixel shapes, colours outside the red clothing, and independent left/right poses are preserved. The original 2D hero is unchanged. Run input tests cover both Shift keys, release/blur cleanup, touch toggle persistence, diagonal speed and wall collisions.
 
 ### Hyundai–U-PLEX underpass
 
@@ -30,4 +30,4 @@ The saved OSM way 1041227528 is a 4F building bridge (`min_height=13`, `height=1
 
 Validation includes walking the entire alley northward and southward through the bridge footprint, reachability from the station, adjacent wall collisions, insufficient-clearance rejection, and metadata comparison against the saved survey XML.
 
-Character revision 2 references Ethan’s HGSS field proportions and movement silhouettes (https://bulbapedia.bulbagarden.net/wiki/File:EthanHGSSwalkdown.png and https://www.deviantart.com/chrisx698/art/Pokemon-HG-SS-Sprite-Gold-165246738). All runtime pixels are newly authored in avatar.mjs. The live four-direction idle/walk/run review is at `reference/character-study.html`.
+Character revision 3 uses the source sprites directly instead of the previous hand-drawn approximation. The live four-direction idle/walk/run review is at `reference/character-study.html`.
