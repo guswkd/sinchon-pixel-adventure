@@ -4,7 +4,7 @@ Separate from the original game. Open `prototype/index.html` through HTTP(S).
 
 - Vendored Three.js 0.160.1 (MIT), no external runtime/CDN dependency.
 - Original surveyed `CITY_GEOGRAPHY` is cropped to Sinchon Station–Hyundai–U-PLEX–northern Yonsei-ro–the first Myeongmul-gil stretch–Changchun Church–Seongsan-ro crossing–Yonsei main gate–Baekyang-ro entrance and uniformly compressed into a small walking scene. Building heights, facades and street props are illustrative, not surveyed.
-- Polygon ground and extruded buildings, nearest-filtered textures and a recoloured HGSS Ethan field sprite and existing NPC sprites (source credits in `assets/ethan-source.md`).
+- Polygon ground and extruded buildings, nearest-filtered textures and an original varsity-jacket student sprite and existing NPC sprites (hero design notes in `assets/varsity-character.md`).
 - Automatic camera follows the local tangent of the surveyed road under the player, using movement alignment and distance hysteresis to choose branches. Tangents are sampled over an 8-unit arc; compatible survey-way endpoints are joined. Stopping/reversing does not select a new view, and angular speed is limited to 0.75 rad/s.
 - Orthographic camera: Q/R look around by 45 degrees (walking 0.7 world units resumes auto); C explicitly toggles auto/manual; Z toggles distance.
 - Arrows/WASD: tap faces, hold 150 ms walks, combined keys walk diagonally. A new press or changed direction follows the visible screen axes; holding the same direction preserves its world heading through camera turns. Releasing/re-pressing reads the current screen again. Camera rotation does not restart the turn delay. Hold Shift to run at 1.8× walking speed, or toggle the visible run button on desktop/phones. Running has a separate four-frame stride; the 150 ms turn-only delay still applies.
@@ -23,7 +23,7 @@ Validation: `node tests/prototype.test.mjs` from repository root. Includes route
 
 Current camera scope is the walking presentation, not a fresh geographical survey. Station approach tests cover the complete outward and return transition, boundary stability, explicit manual mode, automatic restoration after looking around, and return-to-station reset.
 
-Hero art: `avatar.mjs` renders the original HGSS Ethan walking/running frames with only the two red clothing shades changed to blue. The indexed source frames and source credit are in `assets/ethan-frames.mjs` and `assets/ethan-source.md`. Original pixel shapes, colours outside the red clothing, and independent left/right poses are preserved. The original 2D hero is unchanged. Run input tests cover both Shift keys, release/blur cleanup, touch toggle persistence, diagonal speed and wall collisions.
+Hero art: `avatar.mjs` now draws an original 24×32 student with short parted hair, a blue varsity jacket, ivory sleeves, Y lettering, trousers and sneakers. All four views and walking/running poses are built on a clean pixel grid; no HGSS frames or palette are imported. The previous extracted character asset has been removed. The original 2D game is unchanged.
 
 ### Hyundai–U-PLEX underpass
 
@@ -31,7 +31,7 @@ The saved OSM way 1041227528 is a 4F building bridge (`min_height=13`, `height=1
 
 Validation includes walking the entire alley northward and southward through the bridge footprint, reachability from the station, adjacent wall collisions, insufficient-clearance rejection, and metadata comparison against the saved survey XML.
 
-Character revision 3 uses the source sprites directly instead of the previous hand-drawn approximation. The live four-direction idle/walk/run review is at `reference/character-study.html`.
+Character revision 4 replaces the recoloured game sprite with a newly drawn varsity student. The live four-direction idle/walk/run review is at `reference/character-study.html`.
 
 
 ### Section 02 validation
