@@ -60,3 +60,5 @@ Building survey pass 01-C: Hyundai main store now uses the official 12-storey co
 Section 05 adds the surveyed northern Baekyang promenade and Sports Science surroundings; bounds now extend west to 115 and north to -45. There are 553 buildings, 628 roads, 15 visit points and 20 audit cells. See `reference/map-audit/section-05.md`.
 
 This supersedes the road-following camera behavior described above: gameplay uses `StableCamera`, north-up by default. Streets, alleys and reversing never select a new bearing. Q/R enter a persistent manual view; C restores north. The former `RouteCamera` remains only for reference/regression comparisons.
+
+Shared shop kit: `shop-kit.mjs` paints one 64×64 upper-storey module and one 64×32 storefront module in four palettes. All generic shop walls share four cached GPU textures instead of creating one texture per building. Street-facing storefronts now also apply to the original station blocks. Geometry, placeholder heights and dedicated landmark models are unchanged; the generic artwork does not certify real floor counts or tenant signs. Verified by syntax check and in-browser visual review.

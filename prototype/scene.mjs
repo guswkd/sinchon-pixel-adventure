@@ -1,3 +1,4 @@
+import {paintShopWall,paintShopFront} from './shop-kit.mjs';
 import {addHyundaiDetails} from './hyundai-model.mjs';
 import {DETAIL_ZONES,detailZoneAtSurvey} from './building-survey.mjs?v=3';
 import {addUplexDetails} from './uplex-model.mjs';
@@ -70,13 +71,8 @@ function facadeSign(b,text){
  const width=Math.min(7,len*.83),height=width*40/256;
  const mesh=new THREE.Mesh(new THREE.PlaneGeometry(width,height),new THREE.MeshBasicMaterial({map:textTexture(text,b.type==='uplex'?'#244f61':'#455a49'),side:THREE.DoubleSide,transparent:true}));mesh.position.set(mid.x+nx*.035,b.height*.64,mid.z+nz*.035);mesh.rotation.y=Math.atan2(nx,nz);scene.add(mesh);return mesh;
 }
-const shopWindows=Array.from({length:4},(_,i)=>texture(64,32,c=>{
- c.fillStyle='#e9dfc5';c.fillRect(0,0,64,32);c.fillStyle=['#587b79','#9e725e','#647b91','#7a8062'][i];c.fillRect(0,0,64,6);
- c.fillStyle='#3c535b';c.fillRect(4,8,36,22);c.fillRect(44,7,16,25);
- c.fillStyle='#a1c4c6';c.fillRect(6,10,32,15);c.fillRect(47,10,10,14);
- c.fillStyle='#d9e5d9';c.fillRect(8,10,2,15);c.fillRect(25,10,2,15);c.fillRect(55,20,2,3);
- c.fillStyle='#c6b28c';c.fillRect(7,23,30,4);
-}));
+const shopWalls=Array.from({length:4},(_,i)=>{const t=texture(64,64,c=>paintShopWall(c,i));t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(.42,.42);return t;});
+const shopWindows=Array.from({length:4},(_,i)=>texture(64,32,c=>paintShopFront(c,i)));
 function shopFront(b){
  let best=null;
  for(let i=1;i<b.points.length;i++){
@@ -92,12 +88,12 @@ function shopFront(b){
  mesh.position.set(mid.x+nx*.04,.76,mid.z+nz*.04);mesh.rotation.y=Math.atan2(nx,nz);scene.add(mesh);return mesh;
 }
 for(const b of [...world.buildings,...world.sceneryBuildings]){
- const wall=facadeTexture(b.type,b.index);wall.wrapS=wall.wrapT=THREE.RepeatWrapping;wall.repeat.set(.42,b.type==='bridge'?1/(b.height-b.baseHeight):.42);
+ const wall=b.type==='shop'?shopWalls[b.index%4]:facadeTexture(b.type,b.index);if(b.type!=='shop'){wall.wrapS=wall.wrapT=THREE.RepeatWrapping;wall.repeat.set(.42,b.type==='bridge'?1/(b.height-b.baseHeight):.42);}
  const mats=[new THREE.MeshLambertMaterial({color:b.type==='uplex'?'#79c8e2':b.type==='hyundai'?'#f6e8d5':['#afc7df','#d6a292','#95bbb9','#d0c0a3'][b.index%4]}),new THREE.MeshLambertMaterial({map:wall})];
  const mesh=new THREE.Mesh(new THREE.ExtrudeGeometry(shapeOf(b.points),{depth:b.height-b.baseHeight,bevelEnabled:false,steps:1}),mats);mesh.rotation.x=-Math.PI/2;mesh.position.y=b.baseHeight;scene.add(mesh);buildingMeshes.push(mesh);
  flat(b.points.map(p=>({x:p.x+1,z:p.z+.7})),'#5e7463',.008,.13);
  const roofRing=b.points.map(p=>new THREE.Vector3(p.x,b.height+.04,p.z));const rim=new THREE.Line(new THREE.BufferGeometry().setFromPoints(roofRing),new THREE.LineBasicMaterial({color:'#6f859f'}));scene.add(rim);
- const sign=b.survey?null:b.type==='shop'?(b.newSection&&!b.scenery?shopFront(b):null):b.type==='bridge'?null:facadeSign(b,b.type==='uplex'?'U-PLEX':b.type==='church'?'창천교회':b.type==='campus'?b.name.replace(/ \(.*\)/,''):b.type==='hospital'?'연세암병원':'HYUNDAI');
+ const sign=b.survey?null:b.type==='shop'?(!b.scenery?shopFront(b):null):b.type==='bridge'?null:facadeSign(b,b.type==='uplex'?'U-PLEX':b.type==='church'?'창천교회':b.type==='campus'?b.name.replace(/ \(.*\)/,''):b.type==='hospital'?'연세암병원':'HYUNDAI');
  const details=[];if(b.survey?.model==='hyundai'){
   details.push(...addHyundaiDetails(THREE,scene,b,{texture,textTexture,inside}));
  }else if(b.survey?.model==='uplex'){
