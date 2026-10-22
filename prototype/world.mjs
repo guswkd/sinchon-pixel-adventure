@@ -1,3 +1,4 @@
+import {BUILDING_SURVEY} from './building-survey.mjs';
 // Continuous world coordinates: the surveyed street geometry is compressed
 // uniformly for a walkable diorama, never rasterized into stair-step tiles.
 export const SCALE=.42;
@@ -20,8 +21,9 @@ export function createWorld(source){
   const points=b.points.map(toWorld);const type=b.buildingType==='bridge'?'bridge':b.branch==='신촌점'?'hyundai':b.branch==='U Plex'?'uplex':b.name==='창천교회'?'church':(b.name==='공학원 (102)'||/공학관|백주년기념관|스포츠과학관/.test(b.name))?'campus':b.name==='연세암병원'?'hospital':'shop';
   const center={x:points.reduce((a,p)=>a+p.x,0)/points.length,z:points.reduce((a,p)=>a+p.z,0)/points.length};
   const metresToWorld=SCALE/(source.metresPerTile||1.5),baseHeight=Math.max(0,(b.minHeight||0)*metresToWorld);
-  const height=baseHeight>0?Math.max(baseHeight+.2,(b.height||b.minHeight+3)*metresToWorld):type==='hyundai'?7:type==='uplex'?8.2:type==='church'?6.8:type==='campus'?7.5:type==='hospital'?10:3+(index%4)*.7;
-  return {id:b.id,name:b.name,points,type,center,baseHeight,height,index,newSection:!oldStyles.has(b.id)};
+  const survey=BUILDING_SURVEY[b.id];
+  const height=survey?survey.heightMetres*metresToWorld:baseHeight>0?Math.max(baseHeight+.2,(b.height||b.minHeight+3)*metresToWorld):type==='hyundai'?7:type==='uplex'?8.2:type==='church'?6.8:type==='campus'?7.5:type==='hospital'?10:3+(index%4)*.7;
+  return {id:b.id,name:b.name,points,type,center,baseHeight,height,survey,index,newSection:!oldStyles.has(b.id)};
  };
  const buildings=source.buildings.filter(b=>intersects(b.points)).map(makeBuilding);
  // Keep real surrounding blocks visible beyond the playable edge, so the next

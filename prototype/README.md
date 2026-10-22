@@ -48,3 +48,7 @@ Camera road-following revision: direct keyboard runs verified the station approa
 Section 03 validation: all ten landmarks are reachable from station. Tests traverse the saved diagonal crosswalk and campus entrance in both directions and check Baekyang-ro camera selection. Direct browser play covered station-to-gate, the gate dialogue and Baekyang-ro arrival. See `reference/map-audit/section-03.md`.
 
 Section 04 validation: 467 building footprints, 537 road features and thirteen reachable destinations. Tests cover the section seam, bidirectional surveyed promenade and Baekyang-ro camera selection. Direct browser play reached the engineering buildings and northern promenade from the station, including the promenade dialogue. See `reference/map-audit/section-04.md`.
+
+### Building survey pass 01-A
+
+Each of the four sections now has four geographic audit cells (A northwest, B northeast, C southwest, D southeast), shown on the map and current-location line. U-PLEX is the first individually sourced model: 12 above-ground storeys, a rooftop garden, a saved OSM height of 60 m (16.8 scene units), blue curtain walls, lower facade projections and a neutral billboard. Architectural floor counts and indicative facade geometry are kept separate from unverified surrounding buildings. See `reference/map-audit/building-detail-01A.md`. Ground footprint and passage collisions are unchanged.

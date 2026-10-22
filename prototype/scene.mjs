@@ -1,5 +1,7 @@
+import {DETAIL_ZONES,detailZoneAtSurvey} from './building-survey.mjs';
+import {addUplexDetails} from './uplex-model.mjs';
 import * as THREE from './vendor/three.module.min.js';
-import {createWorld,toWorld,inside,segmentDistance,sectionAt,walkable,findFree,movePlayer,TurnWalkInput,RouteCamera,RunControl,SCALE,PLAYER_HEIGHT} from './world.mjs?v=10';
+import {createWorld,toWorld,inside,segmentDistance,sectionAt,walkable,findFree,movePlayer,TurnWalkInput,RouteCamera,RunControl,SCALE,PLAYER_HEIGHT} from './world.mjs?v=11';
 import {paintAvatar,loadAvatar} from './avatar.mjs?v=5';
 const sprint=new RunControl();
 const $=s=>document.querySelector(s),canvas=$('#scene');
@@ -94,8 +96,10 @@ for(const b of [...world.buildings,...world.sceneryBuildings]){
  const mesh=new THREE.Mesh(new THREE.ExtrudeGeometry(shapeOf(b.points),{depth:b.height-b.baseHeight,bevelEnabled:false,steps:1}),mats);mesh.rotation.x=-Math.PI/2;mesh.position.y=b.baseHeight;scene.add(mesh);buildingMeshes.push(mesh);
  flat(b.points.map(p=>({x:p.x+1,z:p.z+.7})),'#5e7463',.008,.13);
  const roofRing=b.points.map(p=>new THREE.Vector3(p.x,b.height+.04,p.z));const rim=new THREE.Line(new THREE.BufferGeometry().setFromPoints(roofRing),new THREE.LineBasicMaterial({color:'#6f859f'}));scene.add(rim);
- const sign=b.type==='shop'?(b.newSection&&!b.scenery?shopFront(b):null):b.type==='bridge'?null:facadeSign(b,b.type==='uplex'?'U-PLEX':b.type==='church'?'창천교회':b.type==='campus'?b.name.replace(/ \(.*\)/,''):b.type==='hospital'?'연세암병원':'HYUNDAI');
- const details=[];if(b.type==='bridge'){
+ const sign=b.type==='uplex'?null:b.type==='shop'?(b.newSection&&!b.scenery?shopFront(b):null):b.type==='bridge'?null:facadeSign(b,b.type==='uplex'?'U-PLEX':b.type==='church'?'창천교회':b.type==='campus'?b.name.replace(/ \(.*\)/,''):b.type==='hospital'?'연세암병원':'HYUNDAI');
+ const details=[];if(b.survey?.model==='uplex'){
+  details.push(...addUplexDetails(THREE,scene,b,{texture,textTexture,inside,flat}));
+ }else if(b.type==='bridge'){
   const lowerRim=new THREE.Line(new THREE.BufferGeometry().setFromPoints(b.points.map(p=>new THREE.Vector3(p.x,b.baseHeight,p.z))),new THREE.LineBasicMaterial({color:'#50646b'}));scene.add(lowerRim);details.push(lowerRim);
  }else if(b.type==='church'){
   details.push(box(.18,1.5,.18,'#e4d8b9',b.center.x,b.height,b.center.z),box(.9,.18,.18,'#e4d8b9',b.center.x,b.height+1.05,b.center.z));
@@ -158,6 +162,7 @@ function drawMap(){const c=$('#mini').getContext('2d'),w=360,h=420,b=world.bound
  for(const r of world.roads.filter(r=>!r.pedestrian||r.crossing||r.name==='백양로')){c.strokeStyle=r.name==='백양로'?'#458cbd':r.crossing?'#ffffff':r.name==='연세로'?'#6e987f':'#b1b7aa';c.lineWidth=Math.max(2,r.width*s);c.beginPath();r.points.forEach((q,i)=>{const a=p(q);i?c.lineTo(a.x,a.y):c.moveTo(a.x,a.y);});c.stroke();}
  for(const f of world.buildings){c.fillStyle=f.type==='uplex'?'#81a9af':f.type==='hyundai'?'#b7aa88':'#d2c8b0';c.beginPath();f.points.forEach((q,i)=>{const a=p(q);i?c.lineTo(a.x,a.y):c.moveTo(a.x,a.y);});if(f.baseHeight>=PLAYER_HEIGHT+.1){c.strokeStyle='#568b92';c.lineWidth=1;c.setLineDash([3,2]);c.stroke();c.setLineDash([]);}else c.fill();}
  c.restore();c.font='10px Galmuri';c.fillStyle='#34574b';c.fillText('N ↑',14,20);c.fillText('04 백양로 · 강의동',ox,oy-10);c.strokeStyle='#92a88c';c.setLineDash([4,4]);c.beginPath();c.moveTo(ox,seam);c.lineTo(w-ox,seam);c.moveTo(ox,campusSeam);c.lineTo(w-ox,campusSeam);c.moveTo(ox,innerSeam);c.lineTo(w-ox,innerSeam);c.stroke();c.setLineDash([]);
+ for(const zone of DETAIL_ZONES){const a=p(toWorld([zone.left,zone.top])),d=p(toWorld([zone.right,zone.bottom]));c.strokeStyle='#758b90';c.lineWidth=.7;c.setLineDash([2,3]);c.strokeRect(a.x,a.y,d.x-a.x,d.y-a.y);c.setLineDash([]);c.fillStyle=zone.id==='01-A'?'#275b86':'#596e70';c.font='9px Galmuri';c.fillText(zone.id,a.x+3,a.y+10);}
  for(const [i,f] of world.landmarks.entries()){const q=p(f);c.fillStyle=i<3?'#42674f':'#426b87';c.beginPath();c.arc(q.x,q.y,7,0,Math.PI*2);c.fill();c.fillStyle='#fff8e2';c.textAlign='center';c.fillText(String(i+1),q.x,q.y+3);}c.textAlign='start';
  const me=p(player);c.fillStyle='#fff9df';c.beginPath();c.arc(me.x,me.y,6,0,7);c.fill();c.fillStyle='#c85636';c.beginPath();c.arc(me.x,me.y,4,0,7);c.fill();}
 const raycaster=new THREE.Raycaster(),direction=new THREE.Vector3();let occlusionFrame=0;
@@ -165,6 +170,7 @@ function fadeOccluders(){direction.set(player.x,.9,player.z).sub(camera.position
  for(const b of buildingVisuals){const fading=hit.has(b.mesh);for(const m of b.mats){m.transparent=fading;m.opacity=fading?.23:1;m.depthWrite=!fading;}b.rim.visible=!fading;if(b.sign)b.sign.visible=!fading;for(const d of b.details)d.visible=!fading;}}
 function syncRun(){$('#run-toggle').setAttribute('aria-pressed',String(sprint.toggled));$('#run-toggle').textContent=sprint.toggled?'달리기 켜짐':'달리기 켜기';$('#pace').textContent=sprint.active?'달리기 · 방향을 누르면 출발':'걷기 · Shift를 누르면 달리기';}
 function updateHUD(){
+ const zone=detailZoneAtSurvey(player.x/SCALE+225,player.z/SCALE+525);$('#detail-zone').textContent=zone?`${zone.id} · ${zone.id==='01-A'?'유플렉스 외관 1차 반영':'건물 상세화 예정'}`:'';
  syncRun();const near=nearest(),section=sectionAt(player),underBridge=world.buildings.some(b=>b.baseHeight>=PLAYER_HEIGHT+.1&&inside(player,b.points));
  const location=section===4?(player.x>toWorld([275,0]).x?'04 · 백주년기념관':'04 · 백양로 · 공학관'):section===3?(player.z<toWorld([0,189]).z?'03 · 백양로 초입':player.z<toWorld([0,205]).z?'03 · 연세대 정문':'03 · 성산로 횡단'):section===2?(view.pose.region==='myeongmul'?'02 · 명물길':player.z<-94?'02 · 창천교회 앞':'02 · 연세로 상가'):underBridge?'현백–U-PLEX · 연결통로 아래':player.z<-25?'U-PLEX · 빨잠 광장':player.x<-5&&player.z<9?'현대백화점 · 연결 골목':'신촌역 · 연세로';
  $('#place').textContent=location;$('#camera-status').textContent=view.status;$('#steps').textContent=Math.round(distance/SCALE*1.5)+' m 산책';$('#hint').textContent=near.d<5?near.name+' · Space로 살펴보기':'짧게 방향 · 길게 '+(sprint.active?'달리기':'걷기')+' · Q / R 시점 회전';$('#north').style.transform=`rotate(${-yaw*180/Math.PI}deg)`;

@@ -173,3 +173,15 @@ for(const path of [innerPath,[...innerPath].reverse()]){
 assert.ok(world.buildings.some(b=>b.id==='324328422'&&b.type==='campus'));
 assert.ok(world.landmarks.some(p=>p.id==='centennial'));
 console.log('PASS section 04 seam, bidirectional surveyed promenade, camera and centennial building');
+
+const {DETAIL_ZONES,detailZoneAtSurvey}=await import('../prototype/building-survey.mjs');
+assert.equal(DETAIL_ZONES.length,16);
+assert.equal(new Set(DETAIL_ZONES.map(z=>z.id)).size,16);
+assert.equal(detailZoneAtSurvey(224,462).id,'01-A');
+const uplex=world.buildings.find(b=>b.id==='356392577');
+assert.equal(uplex.survey.floors,12);
+assert.equal(uplex.survey.basements,7);
+assert.ok(Math.abs(uplex.height-60*.42/1.5)<1e-9);
+assert.equal(uplex.baseHeight,0);
+assert.ok(world.buildings.some(b=>!b.survey),'unknown building heights stay explicitly unverified');
+console.log('PASS sixteen detail zones and sourced U-PLEX twelve-storey height');
