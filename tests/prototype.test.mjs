@@ -126,7 +126,7 @@ console.log('PASS surveyed 4F bridge clearance, reachable underpass, two-way tra
 
 // Section 02 follows the saved survey, remains connected across the old edge,
 // and keeps both arterial routes open in both directions.
-assert.equal(SURVEY_BOUNDS.top,145);assert.equal(sectionAt(toWorld([241,410])),2);
+assert.equal(SURVEY_BOUNDS.top,25);assert.equal(sectionAt(toWorld([241,410])),2);
 assert.equal(sectionAt(world.spawn),1);
 assert.ok(world.buildings.some(b=>b.name==='창천교회'&&b.type==='church'));
 const namedRoads=world.roads.filter(r=>r.name==='연세로'||r.name==='명물길');
@@ -161,3 +161,15 @@ const campusView=new RouteCamera(toWorld([234.76,189.12]),world.roads);
 traverse(campusView,[toWorld([234.76,189.12]),toWorld([243,157])]);assert.equal(campusView.pose.label,'백양로');
 assert.ok(world.buildings.some(b=>b.type==='campus'));assert.ok(world.buildings.some(b=>b.type==='hospital'));
 console.log('PASS section 03 gate POI, real crosswalk, two-way campus approach and Baekyang camera');
+
+assert.equal(sectionAt(toWorld([245,144])),4);
+assert.equal(sectionAt(toWorld([245,146])),3);
+const innerPath=[[243,157],[252.36,120.48],[254.68,110.28],[260.72,87.56],[266.84,62.76],[272,43]].map(toWorld);
+for(const path of [innerPath,[...innerPath].reverse()]){
+ let p={...path[0]};const view=new RouteCamera(p,world.roads);
+ for(const end of path.slice(1)){const d=Math.hypot(end.x-p.x,end.z-p.z);p=movePlayer(world,p,{x:(end.x-p.x)/d,z:(end.z-p.z)/d},d);assert.ok(Math.hypot(p.x-end.x,p.z-end.z)<1e-7,'section 04 main promenade stays open in both directions');view.update(p,1/60);}
+ assert.equal(view.pose.label,'백양로');
+}
+assert.ok(world.buildings.some(b=>b.id==='324328422'&&b.type==='campus'));
+assert.ok(world.landmarks.some(p=>p.id==='centennial'));
+console.log('PASS section 04 seam, bidirectional surveyed promenade, camera and centennial building');
