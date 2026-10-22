@@ -1,4 +1,4 @@
-import {BUILDING_SURVEY} from './building-survey.mjs';
+import {BUILDING_SURVEY} from './building-survey.mjs?v=2';
 // Continuous world coordinates: the surveyed street geometry is compressed
 // uniformly for a walkable diorama, never rasterized into stair-step tiles.
 export const SCALE=.42;

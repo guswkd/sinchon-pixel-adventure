@@ -1,5 +1,8 @@
 // Explicit records only: unverified buildings keep their placeholder height.
 export const BUILDING_SURVEY={
+ '19696463':{floors:12,heightMetres:57,model:'hyundai',
+  floorSource:'https://home.ehyundai.com/newPortal/DP/FG/FG000000_V.do?branchCd=B00127000',
+  heightSource:'reference/map-audit/hyundai.osm',heightStatus:'OSM, not a measured architectural elevation'},
  '356392577':{floors:12,basements:7,heightMetres:60,roofLabel:'13F SKY GARDEN',model:'uplex',
   floorSource:'https://m.haeahn.com/en/project/detail.do?prjctSeq=624',
   heightSource:'reference/map-audit/uplex.osm',heightStatus:'OSM, not a measured architectural elevation'}

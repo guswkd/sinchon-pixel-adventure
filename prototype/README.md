@@ -52,3 +52,5 @@ Section 04 validation: 467 building footprints, 537 road features and thirteen r
 ### Building survey pass 01-A
 
 Each of the four sections now has four geographic audit cells (A northwest, B northeast, C southwest, D southeast), shown on the map and current-location line. U-PLEX is the first individually sourced model: 12 above-ground storeys, a rooftop garden, a saved OSM height of 60 m (16.8 scene units), blue curtain walls, lower facade projections and a neutral billboard. Architectural floor counts and indicative facade geometry are kept separate from unverified surrounding buildings. See `reference/map-audit/building-detail-01A.md`. Ground footprint and passage collisions are unchanged.
+
+Building survey pass 01-C: Hyundai main store now uses the official 12-storey count and saved OSM 57 m height, with a photo-guided white tiled facade, upper strip windows, vertical details and a glazed cylindrical corner. Decorative dimensions remain approximate. Existing footprint/collisions and the bridge passage remain unchanged. See `reference/map-audit/building-detail-01C.md`.
