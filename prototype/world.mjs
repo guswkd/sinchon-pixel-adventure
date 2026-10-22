@@ -1,15 +1,15 @@
-import {BUILDING_SURVEY} from './building-survey.mjs?v=2';
+import {BUILDING_SURVEY} from './building-survey.mjs?v=3';
 // Continuous world coordinates: the surveyed street geometry is compressed
 // uniformly for a walkable diorama, never rasterized into stair-step tiles.
 export const SCALE=.42;
 export const PLAYER_HEIGHT=2.8;
-export const SURVEY_BOUNDS={left:145,right:350,top:25,bottom:616};
+export const SURVEY_BOUNDS={left:115,right:350,top:-45,bottom:616};
 const ORIGINAL_BOUNDS={left:145,right:300,top:422,bottom:616};
 export const toWorld=([x,z])=>({x:(x-225)*SCALE,z:(z-525)*SCALE});
 export function inside(p,points){let c=false;for(let i=0,j=points.length-1;i<points.length;j=i++){const a=points[i],b=points[j];if((a.z>p.z)!==(b.z>p.z)&&p.x<(b.x-a.x)*(p.z-a.z)/(b.z-a.z)+a.x)c=!c;}return c;}
 export function segmentDistance(p,a,b){const dx=b.x-a.x,dz=b.z-a.z,l=dx*dx+dz*dz;const t=l?Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.z-a.z)*dz)/l)):0;return Math.hypot(p.x-a.x-t*dx,p.z-a.z-t*dz);}
 function intersects(points,b=SURVEY_BOUNDS){return Math.max(...points.map(p=>p[0]))>=b.left&&Math.min(...points.map(p=>p[0]))<=b.right&&Math.max(...points.map(p=>p[1]))>=b.top&&Math.min(...points.map(p=>p[1]))<=b.bottom;}
-export function sectionAt(p){return p.z<toWorld([0,145]).z?4:p.z<toWorld([0,258]).z?3:p.z<toWorld([0,422]).z?2:1;}
+export function sectionAt(p){return p.z<toWorld([0,25]).z?5:p.z<toWorld([0,145]).z?4:p.z<toWorld([0,258]).z?3:p.z<toWorld([0,422]).z?2:1;}
 const widths={primary:8.4,secondary:6.6,tertiary:4.6,residential:2.7,living_street:2.7,unclassified:2.5,service:1.8,pedestrian:3.4,footway:1.5,path:1.5,steps:1.4};
 export function createWorld(source){
  const bounds={minX:(SURVEY_BOUNDS.left-225)*SCALE,maxX:(SURVEY_BOUNDS.right-225)*SCALE,minZ:(SURVEY_BOUNDS.top-525)*SCALE,maxZ:(SURVEY_BOUNDS.bottom-525)*SCALE};
@@ -46,7 +46,8 @@ export function createWorld(source){
   {id:'baekyang',name:'백양로 초입',...toWorld([243,157]),text:'백양로의 첫 구간이에요. 왼쪽에는 공학원, 오른쪽에는 의료원 방향 길이 있어요. 북쪽으로 더 걸으면 공학관 앞과 백주년기념관 방향으로 이어져요.'}
   ,{id:'engineering',name:'공학관 앞',...toWorld([245,113]),text:'백양로 서쪽의 공학관 구간이에요. 실제 건물 외곽과 연결 보행로를 따라 돌아볼 수 있어요. 강의동 내부는 아직 열리지 않았어요.'}
   ,{id:'centennial',name:'백주년기념관 앞',...toWorld([281,86]),text:'백양로 동쪽의 백주년기념관 앞이에요. 정문 쪽으로 돌아가려면 백양로를 따라 남쪽으로 내려가면 돼요.'}
-  ,{id:'baekyang-north',name:'백양로 산책길',...toWorld([272,43]),text:'04 구간의 북쪽 산책 지점이에요. 이번에는 공학관과 백주년기념관 구간까지 열었어요. 더 북쪽 캠퍼스와 지하 공간은 다음 구간이에요.'}
+  ,{id:'baekyang-north',name:'백양로 산책길',...toWorld([272,43]),text:'04 구간의 북쪽 산책 지점이에요. 이번에는 공학관과 백주년기념관 구간까지 열었어요. 이제 더 북쪽의 05 산책 구간으로 이어져요. 지하는 아직 열리지 않았어요.'},  {id:'campus-north',name:'백양로 북쪽 산책길',...toWorld([291,-25]),text:'05 구간의 백양로예요. 저장된 지도 보행로를 따라 확장했어요. 건물 내부와 백양누리 지하는 아직 열리지 않았어요.'},
+  {id:'sports',name:'스포츠과학관 주변',...toWorld([169,20]),text:'스포츠과학관 주변의 지상 산책 구간이에요. 건물 외관과 층수는 아직 상세화 전이에요.'}
  ];
  const world={bounds,roads,buildings,sceneryBuildings,sceneryRoads,parks,exits,landmarks};
  world.spawn=findFree(world,toWorld([235,543]));
@@ -179,4 +180,15 @@ export class RunControl{
  toggle(){this.toggled=!this.toggled;}
  get active(){return this.toggled||this.held.size>0;}
  get speed(){return this.active?7.4:4.1;}
+}
+
+// Gameplay default: travel direction never chooses a camera heading.
+export class StableCamera{
+ constructor(){this.reset();}
+ reset(){this.yaw=this.targetYaw=0;this.enabled=true;this.preview=null;this.pose={region:'street',label:'북쪽 기준',yaw:0};}
+ rotate(delta){this.enabled=false;this.targetYaw+=delta;}
+ toggle(){this.enabled=!this.enabled;if(this.enabled)this.targetYaw=0;}
+ update(position,dt){const delta=angleDelta(this.yaw,this.targetYaw),limit=1.5*Math.max(0,dt);this.yaw+=Math.max(-limit,Math.min(limit,delta));}
+ get turning(){return Math.abs(angleDelta(this.yaw,this.targetYaw))>.001;}
+ get status(){return this.enabled?'북쪽 고정 · 왕복해도 같은 방향':'수동 고정 · C로 북쪽 복귀';}
 }

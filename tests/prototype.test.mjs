@@ -126,7 +126,7 @@ console.log('PASS surveyed 4F bridge clearance, reachable underpass, two-way tra
 
 // Section 02 follows the saved survey, remains connected across the old edge,
 // and keeps both arterial routes open in both directions.
-assert.equal(SURVEY_BOUNDS.top,25);assert.equal(sectionAt(toWorld([241,410])),2);
+assert.equal(SURVEY_BOUNDS.top,-45);assert.equal(sectionAt(toWorld([241,410])),2);
 assert.equal(sectionAt(world.spawn),1);
 assert.ok(world.buildings.some(b=>b.name==='창천교회'&&b.type==='church'));
 const namedRoads=world.roads.filter(r=>r.name==='연세로'||r.name==='명물길');
@@ -175,8 +175,8 @@ assert.ok(world.landmarks.some(p=>p.id==='centennial'));
 console.log('PASS section 04 seam, bidirectional surveyed promenade, camera and centennial building');
 
 const {DETAIL_ZONES,detailZoneAtSurvey}=await import('../prototype/building-survey.mjs');
-assert.equal(DETAIL_ZONES.length,16);
-assert.equal(new Set(DETAIL_ZONES.map(z=>z.id)).size,16);
+assert.equal(DETAIL_ZONES.length,20);
+assert.equal(new Set(DETAIL_ZONES.map(z=>z.id)).size,20);
 assert.equal(detailZoneAtSurvey(224,462).id,'01-A');
 const uplex=world.buildings.find(b=>b.id==='356392577');
 assert.equal(uplex.survey.floors,12);
@@ -191,3 +191,12 @@ assert.ok(Math.abs(hyundai.height-57*.42/1.5)<1e-9);
 assert.equal(hyundai.baseHeight,0);
 assert.deepEqual(hyundai.points,sandbox.data.buildings.find(b=>b.id==='19696463').points.map(toWorld));
 console.log('PASS Hyundai main building sourced storeys, height and unchanged footprint');
+const {StableCamera}=await import('../prototype/world.mjs');
+const stable=new StableCamera();
+const trip=[[231,547],[240,445],[220,480],[240,445],[291,-25]].map(toWorld);
+for(const p of [...trip,...trip.toReversed()]){stable.update(p,.2);assert.equal(stable.yaw,0);}
+stable.rotate(Math.PI/4);for(let i=0;i<120;i++)stable.update(trip[i%trip.length],1/60);
+assert.ok(Math.abs(stable.yaw-Math.PI/4)<1e-9);assert.equal(stable.enabled,false);
+stable.toggle();for(let i=0;i<120;i++)stable.update(trip[i%trip.length],1/60);assert.equal(stable.yaw,0);
+assert.equal(sectionAt(toWorld([291,-25])),5);
+console.log('PASS fixed camera across alley returns, reversed trips, manual hold and north reset; section 05');

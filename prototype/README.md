@@ -54,3 +54,9 @@ Section 04 validation: 467 building footprints, 537 road features and thirteen r
 Each of the four sections now has four geographic audit cells (A northwest, B northeast, C southwest, D southeast), shown on the map and current-location line. U-PLEX is the first individually sourced model: 12 above-ground storeys, a rooftop garden, a saved OSM height of 60 m (16.8 scene units), blue curtain walls, lower facade projections and a neutral billboard. Architectural floor counts and indicative facade geometry are kept separate from unverified surrounding buildings. See `reference/map-audit/building-detail-01A.md`. Ground footprint and passage collisions are unchanged.
 
 Building survey pass 01-C: Hyundai main store now uses the official 12-storey count and saved OSM 57 m height, with a photo-guided white tiled facade, upper strip windows, vertical details and a glazed cylindrical corner. Decorative dimensions remain approximate. Existing footprint/collisions and the bridge passage remain unchanged. See `reference/map-audit/building-detail-01C.md`.
+
+## Current gameplay update: section 05 and stable orientation
+
+Section 05 adds the surveyed northern Baekyang promenade and Sports Science surroundings; bounds now extend west to 115 and north to -45. There are 553 buildings, 628 roads, 15 visit points and 20 audit cells. See `reference/map-audit/section-05.md`.
+
+This supersedes the road-following camera behavior described above: gameplay uses `StableCamera`, north-up by default. Streets, alleys and reversing never select a new bearing. Q/R enter a persistent manual view; C restores north. The former `RouteCamera` remains only for reference/regression comparisons.
