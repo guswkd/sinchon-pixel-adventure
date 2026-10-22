@@ -57,7 +57,7 @@ assert.equal(realFork.pose.region,'myeongmul');assert.ok(Math.abs(angleDelta(rea
 console.log('PASS local curve tangents, real Myeongmul fork, intersection hysteresis, reverse/idle stability and manual camera');
 
 const {RunControl}=await import('../prototype/world.mjs');
-const {avatarPixels,AVATAR_PALETTE}=await import('../prototype/avatar.mjs');
+const {avatarFrame,AVATAR_SIZE}=await import('../prototype/avatar.mjs');
 const sprint=new RunControl();assert.equal(sprint.speed,4.1);
 sprint.press('ShiftLeft');sprint.press('ShiftRight');sprint.release('ShiftLeft');assert.ok(sprint.active,'right shift stays active when left is released');
 sprint.clearHeld();assert.equal(sprint.active,false,'blur clears held run keys');
@@ -67,12 +67,13 @@ const walkDistance=movePlayer(open,{x:0,z:0},cameraVector(1,-1,0),sprint.speed);
 assert.ok(Math.abs(Math.hypot(runDistance.x,runDistance.z)/Math.hypot(walkDistance.x,walkDistance.z)-7.4/4.1)<1e-8);
 assert.ok(movePlayer(simple,{x:-3,z:0},{x:1,z:0},sprint.speed).x<-.27,'running also stops at building walls');
 for(const gait of ['idle','walk','run'])for(let dir=0;dir<4;dir++)for(let frame=0;frame<4;frame++){
- const rows=avatarPixels(dir,gait,frame);assert.equal(rows.length,32);assert.ok(rows.every(row=>row.length===24));
- for(const row of rows)for(const c of row)assert.ok(c==='.'||AVATAR_PALETTE[c],`unknown avatar color ${c}`);
-
+ const pose=avatarFrame(dir,gait,frame);assert.equal(pose.dir,dir);
+ assert.ok(pose.x>=0&&pose.y>=0&&pose.x+pose.width<=1375&&pose.y+pose.height<=1144,'atlas crop is inside the source image');
+ assert.ok(pose.width*28/215<AVATAR_SIZE.width&&pose.height*28/215<AVATAR_SIZE.height,'pose fits the game canvas');
 }
-assert.notDeepEqual(avatarPixels(2,'run',0),avatarPixels(2,'walk',0),'run has its own stride');
-assert.notDeepEqual(avatarPixels(0,'walk',0),avatarPixels(0,'walk',2),'walking alternates the feet');
+assert.notDeepEqual(avatarFrame(2,'run',0),avatarFrame(2,'walk',0),'running uses separate poses');
+assert.notDeepEqual(avatarFrame(0,'walk',0),avatarFrame(0,'walk',2),'walking alternates steps');
+assert.deepEqual(avatarFrame(0,'walk',1),avatarFrame(0,'idle',0),'neutral contact frame separates steps');
 console.log('PASS run toggle, both Shift keys, focus reset, speed ratio, running collisions and all varsity sprite frames');
 
 // Holding a keyboard/touch direction is a world-straight line even when the

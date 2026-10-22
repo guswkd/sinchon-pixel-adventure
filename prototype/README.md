@@ -23,7 +23,7 @@ Validation: `node tests/prototype.test.mjs` from repository root. Includes route
 
 Current camera scope is the walking presentation, not a fresh geographical survey. Station approach tests cover the complete outward and return transition, boundary stability, explicit manual mode, automatic restoration after looking around, and return-to-station reset.
 
-Hero art: `avatar.mjs` now draws an original 24×32 student with short parted hair, a blue varsity jacket, ivory sleeves, Y lettering, trousers and sneakers. All four views and walking/running poses are built on a clean pixel grid; no HGSS frames or palette are imported. The previous extracted character asset has been removed. The original 2D game is unchanged.
+Hero art: `avatar.mjs` renders the user-approved simplified varsity character from `assets/varsity-atlas.png`. The generated atlas supplies 20 cropped poses, drawn with nearest-neighbor sampling at a shared scale and foot baseline. The 24×32 canvas preserves a large rounded head and short body. See `assets/varsity-character.md` for provenance. No extracted HGSS frames are loaded. The original 2D game is unchanged.
 
 ### Hyundai–U-PLEX underpass
 
@@ -31,7 +31,7 @@ The saved OSM way 1041227528 is a 4F building bridge (`min_height=13`, `height=1
 
 Validation includes walking the entire alley northward and southward through the bridge footprint, reachability from the station, adjacent wall collisions, insufficient-clearance rejection, and metadata comparison against the saved survey XML.
 
-Character revision 4 replaces the recoloured game sprite with a newly drawn varsity student. The live four-direction idle/walk/run review is at `reference/character-study.html`.
+Character revision 5 replaces the rejected procedural student with the approved low-detail design and generated animation atlas. The live four-direction idle/walk/run review is at `reference/character-study.html`.
 
 
 ### Section 02 validation

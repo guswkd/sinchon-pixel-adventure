@@ -1,9 +1,9 @@
 import * as THREE from './vendor/three.module.min.js';
 import {createWorld,toWorld,inside,segmentDistance,sectionAt,walkable,findFree,movePlayer,TurnWalkInput,RouteCamera,RunControl,SCALE,PLAYER_HEIGHT} from './world.mjs?v=9';
-import {paintAvatar} from './avatar.mjs?v=4';
+import {paintAvatar,loadAvatar} from './avatar.mjs?v=5';
 const sprint=new RunControl();
 const $=s=>document.querySelector(s),canvas=$('#scene');
-await document.fonts.ready;
+await Promise.all([document.fonts.ready,loadAvatar()]);
 const world=createWorld(CITY_GEOGRAPHY),input=new TurnWalkInput();
 $('#route-stops').innerHTML=world.landmarks.map((p,i)=>`<span data-stop="${p.id}">${String(i+1).padStart(2,'0')} ${p.name}</span>`).join('');
 $('#map-legend').innerHTML=world.landmarks.map((p,i)=>`<span><b>${i+1}</b> ${p.name}</span>`).join('');

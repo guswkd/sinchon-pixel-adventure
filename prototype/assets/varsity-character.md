@@ -1,7 +1,7 @@
-# Varsity student — revision 4
+# Varsity student — revision 5
 
-Original game character drawn directly in `../avatar.mjs` on a transparent 24×32 pixel grid. It does not load, trace or recolour the former Ethan frames. Those extracted assets have been removed from the current project tree; earlier Git commits retain the historical attribution.
+The user-approved simplified concept is the visual basis for `varsity-atlas.png`. Generated with the built-in image tool, then rendered with nearest-neighbor sampling onto a 24×32 game canvas. `avatar.mjs` contains measured opaque crop bounds for 20 poses: four directions × neutral, two walk steps, two run steps. All poses share one scale and a common foot baseline.
 
-Design: uncovered short parted hair, blue jacket body, ivory sleeves, striped cuffs and hem, a small chest Y, a large back Y, navy trousers and white-soled sneakers. The Y is ordinary lettering, not an official university emblem. Front/back and profile views have separately drawn head shapes. Walking and running have separate stride and arm parameters.
+Prompt: preserve the approved rounded dark hair, tiny solid eyes, short compact body, blue varsity jacket with ivory sleeves and Y, dark trousers and blue-white shoes. Produce four direction columns and five pose rows on transparency, without labels or shadows; retain simple coarse pixels and consistent character design.
 
-The sprite renderer and palette are original project code. This is not a claim of university endorsement or a legal clearance of the whole game or its other assets.
+The atlas is a generated arrangement based on the approved design. The design was developed using the earlier HGSS character reference; this is not a legal-clearance claim. No extracted HGSS frames are loaded. The Y is ordinary lettering, not an official university emblem.
