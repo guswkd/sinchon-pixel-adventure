@@ -13,4 +13,5 @@ export const DETAIL_ZONES=[
  const mid=(top+bottom)/2,west=115,east=350,split=247.5;
  return [['A',west,split,top,mid],['B',split,east,top,mid],['C',west,split,mid,bottom],['D',split,east,mid,bottom]].map(([part,left,right,north,south])=>({id:`0${section}-${part}`,section,left,right,top:north,bottom:south}));
 });
+DETAIL_ZONES.push(...[['A',350,405,-45,285.5],['B',405,460,-45,285.5],['C',350,405,285.5,616],['D',405,460,285.5,616]].map(([part,left,right,top,bottom])=>({id:`06-${part}`,section:6,left,right,top,bottom})));
 export function detailZoneAtSurvey(x,y){return DETAIL_ZONES.find(z=>x>=z.left&&x<=z.right&&y>=z.top&&y<=z.bottom);}

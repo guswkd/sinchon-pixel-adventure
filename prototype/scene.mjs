@@ -1,9 +1,9 @@
 import {paintShopWall,paintShopFront} from './shop-kit.mjs';
 import {addHyundaiDetails} from './hyundai-model.mjs';
-import {DETAIL_ZONES,detailZoneAtSurvey} from './building-survey.mjs?v=3';
+import {DETAIL_ZONES,detailZoneAtSurvey} from './building-survey.mjs?v=4';
 import {addUplexDetails} from './uplex-model.mjs';
 import * as THREE from './vendor/three.module.min.js';
-import {createWorld,toWorld,inside,segmentDistance,sectionAt,walkable,findFree,movePlayer,TurnWalkInput,StableCamera,RunControl,SCALE,PLAYER_HEIGHT} from './world.mjs?v=13';
+import {createWorld,toWorld,inside,segmentDistance,sectionAt,walkable,findFree,movePlayer,TurnWalkInput,StableCamera,RunControl,SCALE,PLAYER_HEIGHT} from './world.mjs?v=14';
 import {paintAvatar,loadAvatar} from './avatar.mjs?v=5';
 const sprint=new RunControl();
 const $=s=>document.querySelector(s),canvas=$('#scene');
@@ -112,7 +112,7 @@ for(const b of [...world.buildings,...world.sceneryBuildings]){
 function tree(x,z,size=1){if(!walkable(world,{x,z},.6))return;box(.24,1.1,.24,'#8b7956',x,0,z);const mesh=new THREE.Mesh(new THREE.IcosahedronGeometry(size,0),material('#63b958'));mesh.scale.y=1.2;mesh.position.set(x,1.75,z);scene.add(mesh);disk(x,z,.8,'#738566',.012,.22);}
 for(const [x,z] of [[242,531],[242,513],[241,494],[241,477],[241,461],[235,436],[224,438],[218,442],[205,540],[195,550],[272,568],[263,548],[253,536],[213,547],[228,485]]){const p=toWorld([x,z]);tree(p.x,p.z,.75);}
 for(const [x,z] of [[245,408],[236,380],[245,356],[236,342],[246,318],[237,303],[250,270],[267,270],[291,272],[283,388],[307,370],[330,345]]){const p=toWorld([x,z]);tree(p.x,p.z,.65);}
-for(const [text,xy] of [['연세로 ↑ · 명물길 ↗',[244,420]],['명물길',[313,368]],['연세대 정문 방면 ↑',[245,266]],['성산로 · 횡단보도',[252,238]],['연세대학교',[226,191]],['백양로 ↑',[246,165]],['공학관 ←',[248,114]],['백주년기념관 →',[277,89]],['백양로 산책길',[275,44]],['백양로 북쪽',[296,-25]],['스포츠과학관 주변',[169,20]]]){
+for(const [text,xy] of [['연세로 ↑ · 명물길 ↗',[244,420]],['명물길',[313,368]],['연세대 정문 방면 ↑',[245,266]],['성산로 · 횡단보도',[252,238]],['연세대학교',[226,191]],['백양로 ↑',[246,165]],['공학관 ←',[248,114]],['백주년기념관 →',[277,89]],['백양로 산책길',[275,44]],['백양로 북쪽',[296,-25]],['스포츠과학관 주변',[169,20]],['명물길 동쪽 →',[385,299]],['신촌역로',[447,292]],['신촌로 동쪽',[449,513]]]){
  const p=toWorld(xy);standingSign(text,p.x,p.z,2.2,4.2);
 }
 // Trees use surveyed garden interiors, not invented rows across paths.
@@ -135,7 +135,7 @@ function actor(pos,style='hero'){
 }
 const hero=actor(player);
 for(const [xy,style] of [[[239,535],'guide'],[[237,493],'student'],[[235,448],'girl'],[[205,536],'student']])actor(findFree(world,toWorld(xy)),style);
-for(const [xy,style] of [[[237,370],'student'],[[305,371],'girl'],[[266,272],'guide'],[[228,192],'guide'],[[246,160],'student'],[[249,110],'student'],[[282,87],'guide'],[[270,47],'girl']])actor(findFree(world,toWorld(xy)),style);
+for(const [xy,style] of [[[237,370],'student'],[[305,371],'girl'],[[266,272],'guide'],[[228,192],'guide'],[[246,160],'student'],[[249,110],'student'],[[282,87],'guide'],[[270,47],'girl'],[[386,297],'student'],[[444,292],'guide'],[[447,510],'girl']])actor(findFree(world,toWorld(xy)),style);
 function setActor(a,pos,dir,step=0,gait='idle'){a.sprite.position.set(pos.x,.1,pos.z);a.shadow.position.set(pos.x,.085,pos.z);a.sprite.material.map=a.style==='hero'?heroTextures[gait][dir][step]:spriteSets[a.style][dir][step];}
 function showNotice(text){$('#notice').textContent=text;$('#notice').classList.add('show');clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>$('#notice').classList.remove('show'),2600);}
 function nearest(){return world.landmarks.map(p=>({...p,d:Math.hypot(player.x-p.x,player.z-p.z)})).sort((a,b)=>a.d-b.d)[0];}
@@ -171,7 +171,7 @@ function syncRun(){$('#run-toggle').setAttribute('aria-pressed',String(sprint.to
 function updateHUD(){
  const zone=detailZoneAtSurvey(player.x/SCALE+225,player.z/SCALE+525);$('#detail-zone').textContent=zone?`${zone.id} · ${zone.id==='01-A'?'유플렉스 외관 1차 반영':zone.id==='01-C'?'현백 본관 외관 1차 반영':'건물 상세화 예정'}`:'';
  syncRun();const near=nearest(),section=sectionAt(player),underBridge=world.buildings.some(b=>b.baseHeight>=PLAYER_HEIGHT+.1&&inside(player,b.points));
- const location=section===5?'05 · 캠퍼스 북쪽 · 스포츠과학관':section===4?(player.x>toWorld([275,0]).x?'04 · 백주년기념관':'04 · 백양로 · 공학관'):section===3?(player.z<toWorld([0,189]).z?'03 · 백양로 초입':player.z<toWorld([0,205]).z?'03 · 연세대 정문':'03 · 성산로 횡단'):section===2?(view.pose.region==='myeongmul'?'02 · 명물길':player.z<-94?'02 · 창천교회 앞':'02 · 연세로 상가'):underBridge?'현백–U-PLEX · 연결통로 아래':player.z<-25?'U-PLEX · 빨잠 광장':player.x<-5&&player.z<9?'현대백화점 · 연결 골목':'신촌역 · 연세로';
+ const location=section===6?(player.z<toWorld([0,350]).z?'06 · 명물길 동쪽 · 신촌역로':'06 · 신촌 동쪽'):section===5?'05 · 캠퍼스 북쪽 · 스포츠과학관':section===4?(player.x>toWorld([275,0]).x?'04 · 백주년기념관':'04 · 백양로 · 공학관'):section===3?(player.z<toWorld([0,189]).z?'03 · 백양로 초입':player.z<toWorld([0,205]).z?'03 · 연세대 정문':'03 · 성산로 횡단'):section===2?(view.pose.region==='myeongmul'?'02 · 명물길':player.z<-94?'02 · 창천교회 앞':'02 · 연세로 상가'):underBridge?'현백–U-PLEX · 연결통로 아래':player.z<-25?'U-PLEX · 빨잠 광장':player.x<-5&&player.z<9?'현대백화점 · 연결 골목':'신촌역 · 연세로';
  $('#place').textContent=location;$('#camera-status').textContent=view.status;$('#steps').textContent=Math.round(distance/SCALE*1.5)+' m 산책';$('#hint').textContent=near.d<5?near.name+' · Space로 살펴보기':'짧게 방향 · 길게 '+(sprint.active?'달리기':'걷기')+' · Q / R 시점 회전';$('#north').style.transform=`rotate(${-yaw*180/Math.PI}deg)`;
  for(const el of document.querySelectorAll('[data-section]')){if(Number(el.dataset.section)===section)el.setAttribute('aria-current','location');else el.removeAttribute('aria-current');}
  for(const p of world.landmarks)if(Math.hypot(player.x-p.x,player.z-p.z)<5&&!visited.has(p.id)){visited.add(p.id);document.querySelector(`[data-stop="${p.id}"]`).classList.add('visited');showNotice(visited.size===world.landmarks.length?'열린 구간의 모든 장소를 걸었어요.':p.name+'에 도착했어요.');}

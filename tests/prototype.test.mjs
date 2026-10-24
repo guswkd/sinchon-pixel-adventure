@@ -175,8 +175,8 @@ assert.ok(world.landmarks.some(p=>p.id==='centennial'));
 console.log('PASS section 04 seam, bidirectional surveyed promenade, camera and centennial building');
 
 const {DETAIL_ZONES,detailZoneAtSurvey}=await import('../prototype/building-survey.mjs');
-assert.equal(DETAIL_ZONES.length,20);
-assert.equal(new Set(DETAIL_ZONES.map(z=>z.id)).size,20);
+assert.equal(DETAIL_ZONES.length,24);
+assert.equal(new Set(DETAIL_ZONES.map(z=>z.id)).size,24);
 assert.equal(detailZoneAtSurvey(224,462).id,'01-A');
 const uplex=world.buildings.find(b=>b.id==='356392577');
 assert.equal(uplex.survey.floors,12);
@@ -200,3 +200,13 @@ assert.ok(Math.abs(stable.yaw-Math.PI/4)<1e-9);assert.equal(stable.enabled,false
 stable.toggle();for(let i=0;i<120;i++)stable.update(trip[i%trip.length],1/60);assert.equal(stable.yaw,0);
 assert.equal(sectionAt(toWorld([291,-25])),5);
 console.log('PASS fixed camera across alley returns, reversed trips, manual hold and north reset; section 05');
+assert.equal(SURVEY_BOUNDS.right,460);
+assert.equal(sectionAt(toWorld([349,320])),2);
+assert.equal(sectionAt(toWorld([351,320])),6);
+assert.equal(detailZoneAtSurvey(445,300).id,'06-D');
+const eastPath=[[310.88,365.6],[346.28,331.4],[356.16,323],[375.08,305.8],[387.36,293.88],[397.64,289.52],[402.32,288.76],[445.52,287.68]].map(toWorld);
+for(const path of [eastPath,[...eastPath].reverse()]){
+ let p={...path[0]};const camera=new StableCamera();
+ for(const end of path.slice(1)){const d=Math.hypot(end.x-p.x,end.z-p.z);p=movePlayer(world,p,{x:(end.x-p.x)/d,z:(end.z-p.z)/d},d);assert.ok(Math.hypot(p.x-end.x,p.z-end.z)<1e-7,'surveyed east connection stays open');camera.update(p,.1);assert.equal(camera.yaw,0);}
+}
+console.log('PASS section 06 surveyed east route, boundary and fixed camera in both directions');
