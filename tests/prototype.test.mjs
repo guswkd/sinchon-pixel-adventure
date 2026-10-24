@@ -210,3 +210,21 @@ for(const path of [eastPath,[...eastPath].reverse()]){
  for(const end of path.slice(1)){const d=Math.hypot(end.x-p.x,end.z-p.z);p=movePlayer(world,p,{x:(end.x-p.x)/d,z:(end.z-p.z)/d},d);assert.ok(Math.hypot(p.x-end.x,p.z-end.z)<1e-7,'surveyed east connection stays open');camera.update(p,.1);assert.equal(camera.yaw,0);}
 }
 console.log('PASS section 06 surveyed east route, boundary and fixed camera in both directions');
+const {RoadAlignedCamera}=await import('../prototype/world.mjs');
+// Entry history on either side of a near-horizontal street must not choose
+// opposite equivalent orientations (the old previous-yaw rule could do so).
+const horizontal=[{id:'bend',name:'Bend',kind:'tertiary',points:[{x:0,z:2},{x:10,z:0},{x:20,z:1}]}];
+const fromWest=new RoadAlignedCamera({x:0,z:2},horizontal),fromEast=new RoadAlignedCamera({x:20,z:1},horizontal);
+fromWest.pose.yaw=2.8;fromEast.pose.yaw=-2.8;
+for(const cam of [fromWest,fromEast]){cam.update({x:10,z:0},.1);}
+assert.ok(Math.abs(angleDelta(fromWest.targetYaw,fromEast.targetYaw))<1e-9,'same road location has same heading regardless of entry');
+const aligned=new RoadAlignedCamera(curve[0].points[0],curve);traverse(aligned,curve[0].points);
+assert.ok(Math.abs(aligned.targetYaw)>.5,'curved road actually turns the view');
+traverse(aligned,[...curve[0].points].reverse());assert.ok(Math.abs(aligned.targetYaw)<1e-9);
+const liveFork=new RoadAlignedCamera(toWorld([240.68,431.24]),world.roads);
+traverse(liveFork,[[240.68,431.24],[243.56,423.64],[247.28,423.68],[273.24,399.4],[310.88,365.6]].map(toWorld));
+assert.equal(liveFork.pose.region,'myeongmul');assert.ok(Math.abs(liveFork.targetYaw)>.5);
+const held=new TurnWalkInput();held.press('up',0,-1);const v=held.update(.2,liveFork.yaw).vector;
+for(let i=0;i<50;i++){liveFork.update(toWorld([350,330]),1/60);assert.deepEqual(held.update(1/60,liveFork.yaw).vector,v);}
+liveFork.rotate(.4);const manualHeading=liveFork.targetYaw;liveFork.update(world.spawn,1);assert.equal(liveFork.targetYaw,manualHeading);liveFork.toggle(world.spawn);liveFork.update(world.spawn,1);assert.equal(liveFork.enabled,true);
+console.log('PASS road-aligned camera: bends, opposite entries, reversed travel, fork, held-input and manual restore');

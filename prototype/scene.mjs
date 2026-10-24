@@ -3,7 +3,7 @@ import {addHyundaiDetails} from './hyundai-model.mjs';
 import {DETAIL_ZONES,detailZoneAtSurvey} from './building-survey.mjs?v=4';
 import {addUplexDetails} from './uplex-model.mjs';
 import * as THREE from './vendor/three.module.min.js';
-import {createWorld,toWorld,inside,segmentDistance,sectionAt,walkable,findFree,movePlayer,TurnWalkInput,StableCamera,RunControl,SCALE,PLAYER_HEIGHT} from './world.mjs?v=14';
+import {createWorld,toWorld,inside,segmentDistance,sectionAt,walkable,findFree,movePlayer,TurnWalkInput,RoadAlignedCamera,RunControl,SCALE,PLAYER_HEIGHT} from './world.mjs?v=15';
 import {paintAvatar,loadAvatar} from './avatar.mjs?v=5';
 const sprint=new RunControl();
 const $=s=>document.querySelector(s),canvas=$('#scene');
@@ -16,7 +16,7 @@ try{renderer=new THREE.WebGLRenderer({canvas,antialias:false,alpha:false,powerPr
 renderer.setPixelRatio(1);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.setClearColor('#c5e5fa');
 const scene=new THREE.Scene();scene.background=new THREE.Color('#c5e5fa');scene.fog=new THREE.Fog('#c5e5fa',95,150);
 scene.add(new THREE.HemisphereLight('#ffffff','#a8bdd8',2.0));const sun=new THREE.DirectionalLight('#fff9ee',1.1);sun.position.set(-40,65,30);scene.add(sun);
-const camera=new THREE.OrthographicCamera(-24,24,16,-16,.1,200);const view=new StableCamera();let yaw=view.yaw,zoomed=false;
+const camera=new THREE.OrthographicCamera(-24,24,16,-16,.1,200);const view=new RoadAlignedCamera(world.spawn,world.roads);let yaw=view.yaw,zoomed=false;
 let player={...world.spawn},facing={x:0,z:1},distance=0,walkClock=0,walking=false,dialog=false,mapOpen=false,last=0,noticeTimer=0;
 const visited=new Set(),buildingVisuals=[],actors=[],buildingMeshes=[];
 const follow=new THREE.Vector3(player.x,0,player.z);
@@ -141,7 +141,7 @@ function showNotice(text){$('#notice').textContent=text;$('#notice').classList.a
 function nearest(){return world.landmarks.map(p=>({...p,d:Math.hypot(player.x-p.x,player.z-p.z)})).sort((a,b)=>a.d-b.d)[0];}
 function inspect(){if(mapOpen){toggleMap(false);return;}if(dialog){closeDialog();return;}const p=nearest();if(p.d>5){showNotice('장소 가까이에서 살펴볼 수 있어요.');return;}input.clear();dialog=true;$('#speaker').textContent=p.name;$('#words').textContent=p.text;$('#speech').hidden=false;$('#close-speech').focus();}
 function closeDialog(){dialog=false;$('#speech').hidden=true;input.clear();canvas.focus();}
-function rotate(delta){view.rotate(delta,player);syncAuto();showNotice(view.enabled?'북쪽 고정 시점이에요.':'수동 시점 고정 · C를 누르면 북쪽으로 돌아와요.');}
+function rotate(delta){view.rotate(delta,player);syncAuto();showNotice(view.enabled?'길을 따라 시점이 돌아가요.':'수동 시점 · C를 누르면 길 따라 회전해요.');}
 function syncAuto(){$('#auto').setAttribute('aria-pressed',String(view.enabled));$('#auto b').textContent=view.enabled?'켜짐':'꺼짐';}
 function toggleAuto(){view.toggle(player);syncAuto();canvas.focus();}
 function toggleZoom(){zoomed=!zoomed;$('#zoom').innerHTML=(zoomed?'멀리 보기':'가까이 보기')+' <kbd>Z</kbd>';resize();canvas.focus();}

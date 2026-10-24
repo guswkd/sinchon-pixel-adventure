@@ -121,16 +121,17 @@ function pathPoint(road,d){
  return road.points.at(-1);
 }
 function projectRoad(p,road){
- let distance=Infinity,along=0;
+ let distance=Infinity,along=0,segment=0;
  for(let i=1;i<road.points.length;i++){
   const a=road.points[i-1],b=road.points[i],dx=b.x-a.x,dz=b.z-a.z,l=Math.hypot(dx,dz);if(!l)continue;
   const t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.z-a.z)*dz)/(l*l))),d=Math.hypot(p.x-a.x-t*dx,p.z-a.z-t*dz);
-  if(d<distance){distance=d;along=road.lengths[i-1]+t*l;}
+  if(d<distance){segment=i-1;distance=d;along=road.lengths[i-1]+t*l;}
  }
  // A short arc-length window rounds survey vertices without replacing an
  // entire curved street with its end-to-end bearing.
  const a=pathPoint(road,along-4),b=pathPoint(road,along+4);
- return {road,distance,yaw:roadYaw(a,b)};
+ const raw=roadYaw(a,b),base=road.bearings?.[segment];
+ return {road,distance,yaw:base===undefined?raw:equivalentYaw(raw,base)};
 }
 function equivalentYaw(yaw,reference){
  const delta=angleDelta(reference,yaw);return reference+(Math.abs(delta)>Math.PI/2?angleDelta(reference,yaw+Math.PI):delta);
@@ -142,7 +143,7 @@ export function routeCameraPose(p,roads=fallbackRoads,reference=0){
 }
 function roadPose(hit,reference){
  if(!hit)return {region:'street',label:'거리',yaw:reference};
- return {region:hit.road.name==='명물길'?'myeongmul':'street',label:hit.road.name,roadId:hit.road.id,yaw:equivalentYaw(hit.yaw,reference)};
+ return {region:hit.road.name==='명물길'?'myeongmul':'street',label:hit.road.name,roadId:hit.road.id,yaw:hit.road.bearings?hit.yaw:equivalentYaw(hit.yaw,reference)};
 }
 export class RouteCamera{
  constructor(position,roads){this.roads=roads?cameraRoads(roads):fallbackRoads;this.reset(position);}
@@ -195,4 +196,22 @@ export class StableCamera{
  update(position,dt){const delta=angleDelta(this.yaw,this.targetYaw),limit=1.5*Math.max(0,dt);this.yaw+=Math.max(-limit,Math.min(limit,delta));}
  get turning(){return Math.abs(angleDelta(this.yaw,this.targetYaw))>.001;}
  get status(){return this.enabled?'북쪽 고정 · 왕복해도 같은 방향':'수동 고정 · C로 북쪽 복귀';}
+}
+
+// Each named street has a deterministic orientation, independent of entry history.
+// Unwrap its local tangents once, so crossing east/west cannot flip the view.
+export class RoadAlignedCamera extends RouteCamera{
+ constructor(position,roads){
+  super(position,roads);
+  const anchors=new Map();
+  for(const road of this.roads){const old=anchors.get(road.name);if(!old||road.lengths.at(-1)>old.lengths.at(-1))anchors.set(road.name,road);}
+  for(const road of this.roads){
+   const anchor=anchors.get(road.name),reference=equivalentYaw(roadYaw(anchor.points[0],anchor.points.at(-1)),0);
+   road.bearings=[];let previous=reference;
+   for(let i=1;i<road.points.length;i++){previous=equivalentYaw(roadYaw(road.points[i-1],road.points[i]),previous);road.bearings.push(previous);}
+  }
+  this.reset(position);
+ }
+ rotate(delta){this.enabled=false;this.preview=null;this.targetYaw+=delta;}
+ get status(){return this.enabled?'길 따라 회전 · '+this.pose.label+(this.turning?' · 부드럽게 전환 중':''):'수동 시점 · C로 길 따라 회전';}
 }
