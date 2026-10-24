@@ -3,7 +3,7 @@ import {addHyundaiDetails} from './hyundai-model.mjs';
 import {DETAIL_ZONES,detailZoneAtSurvey} from './building-survey.mjs?v=4';
 import {addUplexDetails} from './uplex-model.mjs';
 import * as THREE from './vendor/three.module.min.js';
-import {createWorld,toWorld,inside,segmentDistance,sectionAt,walkable,findFree,movePlayer,TurnWalkInput,RoadAlignedCamera,RunControl,SCALE,PLAYER_HEIGHT} from './world.mjs?v=15';
+import {createWorld,toWorld,inside,segmentDistance,sectionAt,walkable,findFree,movePlayer,TurnWalkInput,RoadAlignedCamera,RunControl,SCALE,PLAYER_HEIGHT} from './world.mjs?v=16';
 import {paintAvatar,loadAvatar} from './avatar.mjs?v=5';
 const sprint=new RunControl();
 const $=s=>document.querySelector(s),canvas=$('#scene');
@@ -177,7 +177,7 @@ function updateHUD(){
  for(const p of world.landmarks)if(Math.hypot(player.x-p.x,player.z-p.z)<5&&!visited.has(p.id)){visited.add(p.id);document.querySelector(`[data-stop="${p.id}"]`).classList.add('visited');showNotice(visited.size===world.landmarks.length?'열린 구간의 모든 장소를 걸었어요.':p.name+'에 도착했어요.');}
 }
 function frame(ms){const dt=Math.min((ms-last)/1000||0,.05);last=ms;
- if(!dialog&&!mapOpen){const control=input.update(dt,yaw);if(control.facing)facing=control.vector;walking=false;if(control.walking){const next=movePlayer(world,player,control.vector,sprint.speed*dt),d=Math.hypot(next.x-player.x,next.z-player.z);walking=d>.0001;distance+=d;player=next;if(walking)walkClock+=dt;}
+ if(!dialog&&!mapOpen){const control=input.update(dt,yaw);if(control.walking)control.vector=view.guideMotion(player,control.vector,input.signature,dt);if(control.facing)facing=control.vector;walking=false;if(control.walking){const next=movePlayer(world,player,control.vector,sprint.speed*dt),d=Math.hypot(next.x-player.x,next.z-player.z);walking=d>.0001;distance+=d;player=next;if(walking)walkClock+=dt;}
  }else walking=false;
  view.update(player,dt);yaw=view.yaw;
  // Smooth the player's anchor, not the rotating look-ahead offset. Otherwise

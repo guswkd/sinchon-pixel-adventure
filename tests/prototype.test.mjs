@@ -228,3 +228,15 @@ const held=new TurnWalkInput();held.press('up',0,-1);const v=held.update(.2,live
 for(let i=0;i<50;i++){liveFork.update(toWorld([350,330]),1/60);assert.deepEqual(held.update(1/60,liveFork.yaw).vector,v);}
 liveFork.rotate(.4);const manualHeading=liveFork.targetYaw;liveFork.update(world.spawn,1);assert.equal(liveFork.targetYaw,manualHeading);liveFork.toggle(world.spawn);liveFork.update(world.spawn,1);assert.equal(liveFork.enabled,true);
 console.log('PASS road-aligned camera: bends, opposite entries, reversed travel, fork, held-input and manual restore');
+// Reproduce holding Up from the station past the U-PLEX east wall.
+for(const hz of [30,60,120]){
+ let p={...world.spawn};const camera=new RoadAlignedCamera(p,world.roads),keys=new TurnWalkInput();keys.press('up',0,-1);
+ for(let i=0;i<hz*8;i++){const c=keys.update(1/hz,camera.yaw);if(c.walking)p=movePlayer(world,p,camera.guideMotion(p,c.vector,keys.signature,1/hz),7.38/hz);camera.update(p,1/hz);}
+ assert.ok(p.z<toWorld([240,435]).z,'held Up clears the U-PLEX wall and reaches the plaza');
+ assert.ok(walkable(world,p));
+ const lateral={x:1,z:0};assert.deepEqual(camera.guideMotion(p,lateral,'1,0',1/hz),lateral,'lateral input releases road guidance immediately');
+}
+const guiding=new RoadAlignedCamera(curve[0].points[0],curve),curveKeys=new TurnWalkInput();curveKeys.press('up',0,-1);let gp={...curve[0].points[0]};
+for(let i=0;i<800;i++){const c=curveKeys.update(.01,guiding.yaw);if(c.walking){const v=guiding.guideMotion(gp,c.vector,curveKeys.signature,.01);gp={x:gp.x+v.x*.07,z:gp.z+v.z*.07};}guiding.update(gp,.01);}
+assert.ok(gp.x>10&&gp.z<-15,'held Up follows curved road rather than the initial world ray');
+console.log('PASS U-PLEX held-Up clearance at 30/60/120 Hz, curve following and lateral release');

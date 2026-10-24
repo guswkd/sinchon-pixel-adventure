@@ -131,7 +131,7 @@ function projectRoad(p,road){
  // entire curved street with its end-to-end bearing.
  const a=pathPoint(road,along-4),b=pathPoint(road,along+4);
  const raw=roadYaw(a,b),base=road.bearings?.[segment];
- return {road,distance,yaw:base===undefined?raw:equivalentYaw(raw,base)};
+ return {road,distance,point:pathPoint(road,along),yaw:base===undefined?raw:equivalentYaw(raw,base)};
 }
 function equivalentYaw(yaw,reference){
  const delta=angleDelta(reference,yaw);return reference+(Math.abs(delta)>Math.PI/2?angleDelta(reference,yaw+Math.PI):delta);
@@ -212,6 +212,29 @@ export class RoadAlignedCamera extends RouteCamera{
   }
   this.reset(position);
  }
- rotate(delta){this.enabled=false;this.preview=null;this.targetYaw+=delta;}
+ reset(position){super.reset(position);this.guide=null;}
+ guideMotion(position,vector,signature,dt){
+  // Only longitudinal input follows the road. Lateral/diagonal input always
+  // leaves the guide immediately, so branches and free exploration stay explicit.
+  if(!this.enabled||!['0,-1','0,1'].includes(signature)){this.guide=null;return vector;}
+  const road=this.roads.find(r=>r.id===this.selected);if(!road)return vector;
+  const hit=projectRoad(position,road),t={x:-Math.sin(hit.yaw),z:-Math.cos(hit.yaw)};
+  const dot=vector.x*t.x+vector.z*t.z;
+  if(hit.distance>Math.max(2.4,(road.width||1)/2+1)){this.guide=null;return vector;}
+  if(!this.guide||this.guide.signature!==signature){
+   if(Math.abs(dot)<.85){this.guide=null;return vector;}
+   this.guide={signature,sign:dot<0?-1:1,x:vector.x,z:vector.z};
+  }
+  const g=this.guide,forward={x:t.x*g.sign,z:t.z*g.sign};
+  if(forward.x*g.x+forward.z*g.z<.5){this.guide=null;return vector;}
+  // Ease toward the surveyed centreline to avoid clipping the U-PLEX corner;
+  // never snap the character or alter building collisions.
+  const nx=-forward.z,nz=forward.x,error=(hit.point.x-position.x)*nx+(hit.point.z-position.z)*nz;
+  const correction=Math.max(-.35,Math.min(.35,error*.35));
+  const target=Math.atan2(forward.x+nx*correction,forward.z+nz*correction),current=Math.atan2(g.x,g.z);
+  const turn=Math.max(-1.5*dt,Math.min(1.5*dt,angleDelta(current,target))),angle=current+turn;
+  g.x=Math.sin(angle);g.z=Math.cos(angle);return {x:g.x,z:g.z};
+ }
+ rotate(delta){this.enabled=false;this.preview=null;this.guide=null;this.targetYaw+=delta;}
  get status(){return this.enabled?'길 따라 회전 · '+this.pose.label+(this.turning?' · 부드럽게 전환 중':''):'수동 시점 · C로 길 따라 회전';}
 }
