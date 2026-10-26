@@ -84,99 +84,6 @@ export class TurnWalkInput{
  }
 }
 export function angleDelta(a,b){return Math.atan2(Math.sin(b-a),Math.cos(b-a));}
-// Surveyed Yonsei-ro centreline (OSM way 383312033), south to north.
-// Keep the road upright instead of introducing a decorative 35° steering arc.
-export const STREET_ROUTE=[[237.28,551.68],[239.88,468.64],[240.68,431.24],[240.64,416.88],[240.12,395.08],[239.96,391.4],[240.4,332.44],[240.52,306.12],[240.88,298.96],[242.4,295.32],[242.8,291.88],[243,272.28]].map(toWorld);
-export const MYEONGMUL_ROUTE=[[273.24,399.4],[310.88,365.6],[346.28,331.4]].map(toWorld);
-const roadYaw=(a,b)=>Math.atan2(a.x-b.x,a.z-b.z);
-export const REGION_YAW={station:roadYaw(STREET_ROUTE[0],STREET_ROUTE[1]),yonsei:roadYaw(STREET_ROUTE[0],STREET_ROUTE[1])};
-// Camera paths use the same surveyed polylines that draw the streets. Join
-// survey-way boundaries only when their tangents continue the same road.
-export function cameraRoads(roads){
- const eligible=roads.filter(r=>r.points.length>1&&!r.area&&!r.crossing&&r.name&&!['steps','path','footway'].includes(r.kind));
- return eligible.map(r=>{
-  let points=[...r.points];
-  for(const end of [0,1]){
-   const tip=end?points.at(-1):points[0],inner=end?points.at(-2):points[1];
-   const dx=tip.x-inner.x,dz=tip.z-inner.z,l=Math.hypot(dx,dz);let best=null,score=.85;
-   for(const other of eligible){if(other===r||other.name!==r.name)continue;
-    for(const chain of [other.points,[...other.points].reverse()]){
-     if(Math.hypot(chain[0].x-tip.x,chain[0].z-tip.z)>.05)continue;
-     const vx=chain[1].x-tip.x,vz=chain[1].z-tip.z,d=(dx*vx+dz*vz)/(l*Math.hypot(vx,vz));
-     if(d>score){score=d;best=chain.slice(1);}
-    }
-   }
-   if(best)points=end?[...points,...best]:[...best].reverse().concat(points);
-  }
-  const lengths=[0];for(let i=1;i<points.length;i++)lengths.push(lengths.at(-1)+Math.hypot(points[i].x-points[i-1].x,points[i].z-points[i-1].z));
-  return {...r,points,lengths};
- });
-}
-function pathPoint(road,d){
- d=Math.max(0,Math.min(road.lengths.at(-1),d));
- for(let i=1;i<road.points.length;i++)if(d<=road.lengths[i]){
-  const a=road.points[i-1],b=road.points[i],t=(d-road.lengths[i-1])/(road.lengths[i]-road.lengths[i-1]||1);
-  return {x:a.x+(b.x-a.x)*t,z:a.z+(b.z-a.z)*t};
- }
- return road.points.at(-1);
-}
-function projectRoad(p,road){
- let distance=Infinity,along=0,segment=0;
- for(let i=1;i<road.points.length;i++){
-  const a=road.points[i-1],b=road.points[i],dx=b.x-a.x,dz=b.z-a.z,l=Math.hypot(dx,dz);if(!l)continue;
-  const t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.z-a.z)*dz)/(l*l))),d=Math.hypot(p.x-a.x-t*dx,p.z-a.z-t*dz);
-  if(d<distance){segment=i-1;distance=d;along=road.lengths[i-1]+t*l;}
- }
- // A short arc-length window rounds survey vertices without replacing an
- // entire curved street with its end-to-end bearing.
- const a=pathPoint(road,along-4),b=pathPoint(road,along+4);
- const raw=roadYaw(a,b),base=road.bearings?.[segment];
- return {road,distance,point:pathPoint(road,along),yaw:base===undefined?raw:equivalentYaw(raw,base)};
-}
-function equivalentYaw(yaw,reference){
- const delta=angleDelta(reference,yaw);return reference+(Math.abs(delta)>Math.PI/2?angleDelta(reference,yaw+Math.PI):delta);
-}
-const fallbackRoads=cameraRoads([{id:'yonsei',name:'연세로',points:STREET_ROUTE},{id:'myeongmul',name:'명물길',points:MYEONGMUL_ROUTE}]);
-export function routeCameraPose(p,roads=fallbackRoads,reference=0){
- const closest=roads.map(r=>projectRoad(p,r)).sort((a,b)=>a.distance-b.distance)[0];
- return roadPose(closest,reference);
-}
-function roadPose(hit,reference){
- if(!hit)return {region:'street',label:'거리',yaw:reference};
- return {region:hit.road.name==='명물길'?'myeongmul':'street',label:hit.road.name,roadId:hit.road.id,yaw:hit.road.bearings?hit.yaw:equivalentYaw(hit.yaw,reference)};
-}
-export class RouteCamera{
- constructor(position,roads){this.roads=roads?cameraRoads(roads):fallbackRoads;this.reset(position);}
- reset(position){this.pose=routeCameraPose(position,this.roads);this.selected=this.pose.roadId;this.yaw=this.targetYaw=this.pose.yaw;this.enabled=true;this.preview=null;this.sample={...position};this.motion=null;}
- rotate(delta,position){this.targetYaw+=delta;if(this.enabled)this.preview={...position};}
- toggle(position){this.enabled=!this.enabled;this.preview=null;if(this.enabled)this.targetYaw=this.pose.yaw;}
- update(position,dt){
-  const dx=position.x-this.sample.x,dz=position.z-this.sample.z,d=Math.hypot(dx,dz);
-  if(d>=.3){
-   this.motion={x:dx/d,z:dz/d};this.sample={...position};
-   const hits=this.roads.map(r=>projectRoad(position,r));
-   for(const h of hits){
-    const alignment=Math.abs(Math.sin(h.yaw)*this.motion.x+Math.cos(h.yaw)*this.motion.z);
-    h.score=h.distance+3*(1-alignment)-(h.road.id===this.selected ? .8 : 0);
-   }
-   hits.sort((a,b)=>a.score-b.score);
-   const current=hits.find(h=>h.road.id===this.selected),best=hits[0];
-   // Retain the current street in open squares and while standing still.
-   // Nearby parallel roads and crosswalks must not attract the camera.
-   if(best&&best.distance<Math.max(3,(best.road.width||1)/2+2)&&(!current||(best.score+.35<current.score&&best.distance+.6<current.distance)))this.selected=best.road.id;
-  }
-  const road=this.roads.find(r=>r.id===this.selected);
-  if(road)this.pose=roadPose(projectRoad(position,road),this.pose.yaw);
-  if(this.preview&&Math.hypot(position.x-this.preview.x,position.z-this.preview.z)>=.7)this.preview=null;
-  if(this.enabled&&!this.preview)this.targetYaw=this.pose.yaw;
-  // Bounded angular speed prevents a sharp junction from whipping the view.
-  const delta=angleDelta(this.yaw,this.targetYaw),step=delta*(1-Math.exp(-3*Math.max(0,dt))),limit=.75*Math.max(0,dt);
-  this.yaw+=Math.max(-limit,Math.min(limit,step));
- }
- get turning(){return Math.abs(angleDelta(this.yaw,this.targetYaw))>Math.PI/180;}
- get status(){if(!this.enabled)return '수동 시점 · 자동 버튼으로 복귀';if(this.preview)return '둘러보는 중 · 걸으면 자동 복귀';return '자동 · '+this.pose.label+' 길 따라가기'+(this.turning?' · 회전 중':'');}
-}
-
 export class RunControl{
  constructor(){this.toggled=false;this.held=new Set();}
  press(code){this.held.add(code);}
@@ -187,66 +94,15 @@ export class RunControl{
  get speed(){return this.active?7.4:4.1;}
 }
 
-// Gameplay default: travel direction never chooses a camera heading.
-export class StableCamera{
- constructor(){this.reset();}
- reset(){this.yaw=this.targetYaw=0;this.enabled=true;this.preview=null;this.pose={region:'street',label:'북쪽 기준',yaw:0};}
- rotate(delta){this.enabled=false;this.targetYaw+=delta;}
- toggle(){this.enabled=!this.enabled;if(this.enabled)this.targetYaw=0;}
- update(position,dt){const delta=angleDelta(this.yaw,this.targetYaw),limit=1.5*Math.max(0,dt);this.yaw+=Math.max(-limit,Math.min(limit,delta));}
- get turning(){return Math.abs(angleDelta(this.yaw,this.targetYaw))>.001;}
- get status(){return this.enabled?'북쪽 고정 · 왕복해도 같은 방향':'수동 고정 · C로 북쪽 복귀';}
-}
-
-// Each named street has a deterministic orientation, independent of entry history.
-// Unwrap its local tangents once, so crossing east/west cannot flip the view.
-export class RoadAlignedCamera extends RouteCamera{
- constructor(position,roads){
-  super(position,roads);
-  const anchors=new Map();
-  for(const road of this.roads){const old=anchors.get(road.name);if(!old||road.lengths.at(-1)>old.lengths.at(-1))anchors.set(road.name,road);}
-  for(const road of this.roads){
-   const anchor=anchors.get(road.name),reference=equivalentYaw(roadYaw(anchor.points[0],anchor.points.at(-1)),0);
-   road.bearings=[];let previous=reference;
-   for(let i=1;i<road.points.length;i++){previous=equivalentYaw(roadYaw(road.points[i-1],road.points[i]),previous);road.bearings.push(previous);}
-  }
-  this.reset(position);
- }
- reset(position){super.reset(position);this.guide=null;}
- guideMotion(position,vector,signature,dt){
-  // Only longitudinal input follows the road. Lateral/diagonal input always
-  // leaves the guide immediately, so branches and free exploration stay explicit.
-  if(!this.enabled||!['0,-1','0,1'].includes(signature)){this.guide=null;return vector;}
-  const road=this.roads.find(r=>r.id===this.selected);if(!road)return vector;
-  const hit=projectRoad(position,road),t={x:-Math.sin(hit.yaw),z:-Math.cos(hit.yaw)};
-  const dot=vector.x*t.x+vector.z*t.z;
-  if(hit.distance>Math.max(2.4,(road.width||1)/2+1)){this.guide=null;return vector;}
-  if(!this.guide||this.guide.signature!==signature){
-   if(Math.abs(dot)<.85){this.guide=null;return vector;}
-   this.guide={signature,sign:dot<0?-1:1,x:vector.x,z:vector.z};
-  }
-  const g=this.guide,forward={x:t.x*g.sign,z:t.z*g.sign};
-  if(forward.x*g.x+forward.z*g.z<.5){this.guide=null;return vector;}
-  // Ease toward the surveyed centreline to avoid clipping the U-PLEX corner;
-  // never snap the character or alter building collisions.
-  const nx=-forward.z,nz=forward.x,error=(hit.point.x-position.x)*nx+(hit.point.z-position.z)*nz;
-  const correction=Math.max(-.35,Math.min(.35,error*.35));
-  const target=Math.atan2(forward.x+nx*correction,forward.z+nz*correction),current=Math.atan2(g.x,g.z);
-  const turn=Math.max(-1.5*dt,Math.min(1.5*dt,angleDelta(current,target))),angle=current+turn;
-  g.x=Math.sin(angle);g.z=Math.cos(angle);return {x:g.x,z:g.z};
- }
- rotate(delta){this.enabled=false;this.preview=null;this.guide=null;this.targetYaw+=delta;}
- get status(){return this.enabled?'길 따라 회전 · '+this.pose.label+(this.turning?' · 부드럽게 전환 중':''):'수동 시점 · C로 길 따라 회전';}
-}
-
 export const OCCLUSION_ANGLES=[0,-Math.PI/9,Math.PI/9,-Math.PI*7/36,Math.PI*7/36];
 // U-PLEX east frontage and north plaza: use the opposite side of the building.
 export function uplexFrontCameraZone(position){
  const x=position.x/SCALE+225,z=position.z/SCALE+525;
  return x>=215&&x<=255&&z>=430&&z<=485;
 }
-export class OcclusionCamera extends StableCamera{
- reset(){super.reset();this.blockedFor=0;this.clearFor=0;this.holdFor=0;}
+export class OcclusionCamera{
+ constructor(){this.reset();}
+ reset(){this.yaw=this.targetYaw=0;this.enabled=true;this.blockedFor=0;this.clearFor=0;this.holdFor=0;}
  update(position,dt,scores=[]){
   dt=Math.max(0,Math.min(dt,.1));this.holdFor=Math.max(0,this.holdFor-dt);
   if(this.enabled&&scores.length){
@@ -265,7 +121,7 @@ export class OcclusionCamera extends StableCamera{
   }
   const delta=angleDelta(this.yaw,this.targetYaw),step=delta*(1-Math.exp(-3*dt));this.yaw+=Math.max(-.55*dt,Math.min(.55*dt,step));
  }
- rotate(delta){super.rotate(delta);this.blockedFor=this.clearFor=0;}
- toggle(){super.toggle();this.blockedFor=this.clearFor=this.holdFor=0;}
+ rotate(delta){this.enabled=false;this.targetYaw+=delta;this.blockedFor=this.clearFor=0;}
+ toggle(){this.enabled=!this.enabled;if(this.enabled)this.targetYaw=0;this.blockedFor=this.clearFor=this.holdFor=0;}
  get status(){return !this.enabled?'수동 시점 · C로 가림 보정 복귀':Math.abs(this.targetYaw)>.01?'건물 가림 보정 · 잠시 옆으로 보기':Math.abs(this.yaw)>.02?'정면으로 복귀 중':'정면 고정 · 건물이 가릴 때만 회전';}
 }

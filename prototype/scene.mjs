@@ -3,7 +3,7 @@ import {addHyundaiDetails} from './hyundai-model.mjs';
 import {DETAIL_ZONES,detailZoneAtSurvey} from './building-survey.mjs?v=4';
 import {addUplexDetails} from './uplex-model.mjs';
 import * as THREE from './vendor/three.module.min.js';
-import {createWorld,toWorld,inside,segmentDistance,sectionAt,walkable,findFree,movePlayer,TurnWalkInput,OcclusionCamera,OCCLUSION_ANGLES,RunControl,SCALE,PLAYER_HEIGHT} from './world.mjs?v=18';
+import {createWorld,toWorld,inside,segmentDistance,sectionAt,walkable,findFree,movePlayer,TurnWalkInput,OcclusionCamera,OCCLUSION_ANGLES,RunControl,SCALE,PLAYER_HEIGHT} from './world.mjs?v=19';
 import {paintAvatar,loadAvatar} from './avatar.mjs?v=5';
 const sprint=new RunControl();
 const $=s=>document.querySelector(s),canvas=$('#scene');
@@ -127,7 +127,7 @@ const red=toWorld([232,445]);box(.25,2.7,.25,'#d65a3c',red.x,0,red.z);box(1.15,.
 const clockTex=texture(32,32,c=>{c.fillStyle='#d65a3c';c.fillRect(0,0,32,32);c.fillStyle='#fff2d0';c.beginPath();c.arc(16,16,12,0,Math.PI*2);c.fill();c.fillStyle='#354c47';c.fillRect(15,7,2,10);c.fillRect(16,15,7,2);});
 const clock=new THREE.Mesh(new THREE.PlaneGeometry(.58,.58),new THREE.MeshBasicMaterial({map:clockTex,side:THREE.DoubleSide}));clock.position.set(red.x-.66,2.78,red.z+.235);scene.add(clock);
 world.obstacles=[{...red,r:.4}];
-function spriteTexture(style,dir,step){return texture(16,20,c=>paintSprite(c,0,style==='hero'?0:4,style,dir,step));}
+function spriteTexture(style,dir,step){return texture(16,20,c=>paintSprite(c,0,4,style,dir,step));}
 const spriteSets={};for(const style of ['girl','student','guide'])spriteSets[style]=Array.from({length:4},(_,d)=>Array.from({length:3},(_,s)=>spriteTexture(style,d,s)));
 const heroTextures=Object.fromEntries(['idle','walk','run'].map(gait=>[gait,Array.from({length:4},(_,dir)=>Array.from({length:4},(_,frame)=>texture(24,32,c=>paintAvatar(c,dir,gait,frame))))]));
 function actor(pos,style='hero'){
@@ -141,12 +141,12 @@ function showNotice(text){$('#notice').textContent=text;$('#notice').classList.a
 function nearest(){return world.landmarks.map(p=>({...p,d:Math.hypot(player.x-p.x,player.z-p.z)})).sort((a,b)=>a.d-b.d)[0];}
 function inspect(){if(mapOpen){toggleMap(false);return;}if(dialog){closeDialog();return;}const p=nearest();if(p.d>5){showNotice('장소 가까이에서 살펴볼 수 있어요.');return;}input.clear();dialog=true;$('#speaker').textContent=p.name;$('#words').textContent=p.text;$('#speech').hidden=false;$('#close-speech').focus();}
 function closeDialog(){dialog=false;$('#speech').hidden=true;input.clear();canvas.focus();}
-function rotate(delta){view.rotate(delta,player);syncAuto();showNotice(view.enabled?'건물이 가릴 때만 시점을 보정해요.':'수동 시점 · C를 누르면 가림 보정으로 돌아와요.');}
+function rotate(delta){view.rotate(delta);syncAuto();showNotice(view.enabled?'건물이 가릴 때만 시점을 보정해요.':'수동 시점 · C를 누르면 가림 보정으로 돌아와요.');}
 function syncAuto(){$('#auto').setAttribute('aria-pressed',String(view.enabled));$('#auto b').textContent=view.enabled?'켜짐':'꺼짐';}
-function toggleAuto(){view.toggle(player);syncAuto();canvas.focus();}
+function toggleAuto(){view.toggle();syncAuto();canvas.focus();}
 function toggleZoom(){zoomed=!zoomed;$('#zoom').innerHTML=(zoomed?'멀리 보기':'가까이 보기')+' <kbd>Z</kbd>';resize();canvas.focus();}
 function toggleMap(open=!mapOpen){mapOpen=open;input.clear();$('#map-overlay').hidden=!open;if(open){drawMap();$('#close-map').focus();}else canvas.focus();}
-function home(){if(dialog)closeDialog();if(mapOpen)toggleMap(false);player={...world.spawn};input.clear();view.reset(player);yaw=view.yaw;syncAuto();follow.set(player.x,0,player.z);showNotice('신촌역 앞으로 돌아왔어요.');canvas.focus();}
+function home(){if(dialog)closeDialog();if(mapOpen)toggleMap(false);player={...world.spawn};input.clear();view.reset();yaw=view.yaw;syncAuto();follow.set(player.x,0,player.z);showNotice('신촌역 앞으로 돌아왔어요.');canvas.focus();}
 const dirs={ArrowUp:[0,-1],KeyW:[0,-1],ArrowDown:[0,1],KeyS:[0,1],ArrowLeft:[-1,0],KeyA:[-1,0],ArrowRight:[1,0],KeyD:[1,0]};
 window.addEventListener('keydown',e=>{if(e.ctrlKey||e.metaKey||e.altKey||['INPUT','TEXTAREA','SELECT','A'].includes(e.target?.tagName))return;const code=e.code;if(e.target?.tagName==='BUTTON'&&['Space','Enter'].includes(code))return;if(!dirs[code]&&!['KeyQ','KeyR','KeyC','KeyZ','KeyM','KeyE','Space','Enter','Escape','ShiftLeft','ShiftRight'].includes(code))return;e.preventDefault();if(code.startsWith('Shift')){sprint.press(code);return;}if(dirs[code]){if(!dialog&&!mapOpen&&!e.repeat)input.press(code,...dirs[code]);return;}if(e.repeat)return;if(code==='Escape'){if(dialog)closeDialog();if(mapOpen)toggleMap(false);return;}if(['Space','Enter','KeyE'].includes(code)){inspect();return;}if(code==='KeyM'){toggleMap();return;}if(dialog||mapOpen)return;if(code==='KeyQ')rotate(-Math.PI/4);if(code==='KeyR')rotate(Math.PI/4);if(code==='KeyC')toggleAuto();if(code==='KeyZ')toggleZoom();},{capture:true});
 window.addEventListener('keyup',e=>{input.release(e.code);if(e.code.startsWith('Shift'))sprint.release(e.code);});
