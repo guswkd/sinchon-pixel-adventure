@@ -190,3 +190,16 @@ assert.ok(Math.abs(occ.yaw)<.001,'U-PLEX returns to front when clear');
 occ.reset();for(let i=0;i<180;i++)occ.update(toWorld([275,400]),1/60,rightClear);
 assert.equal(occ.targetYaw,Math.PI/9,'other streets retain visibility-based direction');
 console.log('PASS U-PLEX opposite turn, stable side, clear-front return and other-street isolation');
+const bend=[{id:'bend',name:'Bend',kind:'tertiary',points:[{x:0,z:20},{x:0,z:0},{x:8,z:-16},{x:24,z:-24}]}];
+const west=new OcclusionCamera(bend[0].points[0],bend),east=new OcclusionCamera(bend[0].points.at(-1),bend);
+for(const cam of [west,east])for(let i=0;i<360;i++)cam.update({x:8,z:-16},1/60,visible);
+assert.ok(Math.abs(west.targetYaw)>.3,'road bend rotates camera');
+assert.ok(Math.abs(angleDelta(west.yaw,east.yaw))<.001,'same road has same view from opposite entries');
+for(let i=0;i<360;i++)west.update({x:0,z:20},1/60,visible);
+assert.ok(Math.abs(west.yaw)<.001,'reverse travel returns to same road heading');
+const roadView=new OcclusionCamera(uplexFront,world.roads);
+for(let i=0;i<180;i++)roadView.update(uplexFront,1/60,rightClear);
+assert.equal(roadView.offsetYaw,-Math.PI/9,'U-PLEX reverse correction remains relative to street');
+const steady=new TurnWalkInput();steady.press('up',0,-1);const heading=steady.update(.2,roadView.yaw).vector;
+for(let i=0;i<120;i++){roadView.update(toWorld([310,365]),1/60,visible);assert.deepEqual(steady.update(1/60,roadView.yaw).vector,heading);}
+console.log('PASS restored road camera: bend, opposite entry, reverse travel, U-PLEX offset and held input');

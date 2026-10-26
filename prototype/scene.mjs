@@ -4,7 +4,7 @@ import {addHyundaiDetails} from './hyundai-model.mjs';
 import {DETAIL_ZONES,detailZoneAtSurvey} from './building-survey.mjs?v=4';
 import {addUplexDetails} from './uplex-model.mjs';
 import * as THREE from './vendor/three.module.min.js';
-import {createWorld,toWorld,inside,segmentDistance,sectionAt,walkable,findFree,movePlayer,TurnWalkInput,OcclusionCamera,OCCLUSION_ANGLES,RunControl,SCALE,PLAYER_HEIGHT} from './world.mjs?v=19';
+import {createWorld,toWorld,inside,segmentDistance,sectionAt,walkable,findFree,movePlayer,TurnWalkInput,OcclusionCamera,OCCLUSION_ANGLES,RunControl,SCALE,PLAYER_HEIGHT} from './world.mjs?v=20';
 import {paintAvatar,loadAvatar} from './avatar.mjs?v=5';
 const sprint=new RunControl();
 const $=s=>document.querySelector(s),canvas=$('#scene');
@@ -17,7 +17,7 @@ try{renderer=new THREE.WebGLRenderer({canvas,antialias:false,alpha:false,powerPr
 renderer.setPixelRatio(1);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.setClearColor('#c5e5fa');
 const scene=new THREE.Scene();scene.background=new THREE.Color('#c5e5fa');scene.fog=new THREE.Fog('#c5e5fa',95,150);
 scene.add(new THREE.HemisphereLight('#ffffff','#a8bdd8',2.0));const sun=new THREE.DirectionalLight('#fff9ee',1.1);sun.position.set(-40,65,30);scene.add(sun);
-const camera=new THREE.OrthographicCamera(-24,24,16,-16,.1,200);const view=new OcclusionCamera();let yaw=view.yaw,zoomed=false;
+const camera=new THREE.OrthographicCamera(-24,24,16,-16,.1,200);const view=new OcclusionCamera(world.spawn,world.roads);let yaw=view.yaw,zoomed=false;
 let player={...world.spawn},facing={x:0,z:1},distance=0,walkClock=0,walking=false,dialog=false,mapOpen=false,last=0,noticeTimer=0;
 const visited=new Set(),buildingVisuals=[],actors=[],buildingMeshes=[];
 const follow=new THREE.Vector3(player.x,0,player.z);
@@ -142,12 +142,12 @@ function showNotice(text){$('#notice').textContent=text;$('#notice').classList.a
 function nearest(){return world.landmarks.map(p=>({...p,d:Math.hypot(player.x-p.x,player.z-p.z)})).sort((a,b)=>a.d-b.d)[0];}
 function inspect(){if(mapOpen){toggleMap(false);return;}if(dialog){closeDialog();return;}const p=nearest();if(p.d>5){showNotice('장소 가까이에서 살펴볼 수 있어요.');return;}input.clear();dialog=true;$('#speaker').textContent=p.name;$('#words').textContent=p.text;$('#speech').hidden=false;$('#close-speech').focus();}
 function closeDialog(){dialog=false;$('#speech').hidden=true;input.clear();canvas.focus();}
-function rotate(delta){view.rotate(delta);syncAuto();showNotice(view.enabled?'건물이 가릴 때만 시점을 보정해요.':'수동 시점 · C를 누르면 가림 보정으로 돌아와요.');}
+function rotate(delta){view.rotate(delta);syncAuto();showNotice(view.enabled?'길을 따라 시점이 돌아가요.':'수동 시점 · C를 누르면 길 따라 회전으로 돌아와요.');}
 function syncAuto(){$('#auto').setAttribute('aria-pressed',String(view.enabled));$('#auto b').textContent=view.enabled?'켜짐':'꺼짐';}
 function toggleAuto(){view.toggle();syncAuto();canvas.focus();}
 function toggleZoom(){zoomed=!zoomed;$('#zoom').innerHTML=(zoomed?'멀리 보기':'가까이 보기')+' <kbd>Z</kbd>';resize();canvas.focus();}
 function toggleMap(open=!mapOpen){mapOpen=open;input.clear();$('#map-overlay').hidden=!open;if(open){drawMap();$('#close-map').focus();}else canvas.focus();}
-function home(){if(dialog)closeDialog();if(mapOpen)toggleMap(false);player={...world.spawn};input.clear();view.reset();yaw=view.yaw;syncAuto();follow.set(player.x,0,player.z);showNotice('신촌역 앞으로 돌아왔어요.');canvas.focus();}
+function home(){if(dialog)closeDialog();if(mapOpen)toggleMap(false);player={...world.spawn};input.clear();view.reset(player);yaw=view.yaw;syncAuto();follow.set(player.x,0,player.z);showNotice('신촌역 앞으로 돌아왔어요.');canvas.focus();}
 const dirs={ArrowUp:[0,-1],KeyW:[0,-1],ArrowDown:[0,1],KeyS:[0,1],ArrowLeft:[-1,0],KeyA:[-1,0],ArrowRight:[1,0],KeyD:[1,0]};
 window.addEventListener('keydown',e=>{if(e.ctrlKey||e.metaKey||e.altKey||['INPUT','TEXTAREA','SELECT','A'].includes(e.target?.tagName))return;const code=e.code;if(e.target?.tagName==='BUTTON'&&['Space','Enter'].includes(code))return;if(!dirs[code]&&!['KeyQ','KeyR','KeyC','KeyZ','KeyM','KeyE','Space','Enter','Escape','ShiftLeft','ShiftRight'].includes(code))return;e.preventDefault();if(code.startsWith('Shift')){sprint.press(code);return;}if(dirs[code]){if(!dialog&&!mapOpen&&!e.repeat)input.press(code,...dirs[code]);return;}if(e.repeat)return;if(code==='Escape'){if(dialog)closeDialog();if(mapOpen)toggleMap(false);return;}if(['Space','Enter','KeyE'].includes(code)){inspect();return;}if(code==='KeyM'){toggleMap();return;}if(dialog||mapOpen)return;if(code==='KeyQ')rotate(-Math.PI/4);if(code==='KeyR')rotate(Math.PI/4);if(code==='KeyC')toggleAuto();if(code==='KeyZ')toggleZoom();},{capture:true});
 window.addEventListener('keyup',e=>{input.release(e.code);if(e.code.startsWith('Shift'))sprint.release(e.code);});
@@ -172,7 +172,7 @@ function sampleVisibility(){
  // Match the rendered camera offset; sample body, head and a short stretch ahead.
  scene.updateMatrixWorld(true);
  return OCCLUSION_ANGLES.map(angle=>{
-  visibilityOrigin.set(follow.x+Math.sin(angle)*39,38,follow.z+Math.cos(angle)*39);let score=0;
+  visibilityOrigin.set(follow.x+Math.sin(view.baseYaw+angle)*39,38,follow.z+Math.cos(view.baseYaw+angle)*39);let score=0;
   for(const [height,ahead,weight] of [[.9,0,.4],[2.3,0,.4],[.3,2,.2]]){
    visibilityDirection.set(player.x,height,player.z-ahead).sub(visibilityOrigin);const length=visibilityDirection.length();
    visibilityRay.set(visibilityOrigin,visibilityDirection.normalize());visibilityRay.far=length-.25;

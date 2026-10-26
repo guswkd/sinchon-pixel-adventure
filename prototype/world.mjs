@@ -94,6 +94,78 @@ export class RunControl{
  get speed(){return this.active?7.4:4.1;}
 }
 
+const roadYaw=(a,b)=>Math.atan2(a.x-b.x,a.z-b.z);
+// Camera paths use the same surveyed polylines that draw the streets. Join
+// survey-way boundaries only when their tangents continue the same road.
+export function cameraRoads(roads){
+ const eligible=roads.filter(r=>r.points.length>1&&!r.area&&!r.crossing&&r.name&&!['steps','path','footway'].includes(r.kind));
+ const paths=eligible.map(r=>{
+  let points=[...r.points];
+  for(const end of [0,1]){
+   const tip=end?points.at(-1):points[0],inner=end?points.at(-2):points[1];
+   const dx=tip.x-inner.x,dz=tip.z-inner.z,l=Math.hypot(dx,dz);let best=null,score=.85;
+   for(const other of eligible){if(other===r||other.name!==r.name)continue;
+    for(const chain of [other.points,[...other.points].reverse()]){
+     if(Math.hypot(chain[0].x-tip.x,chain[0].z-tip.z)>.05)continue;
+     const vx=chain[1].x-tip.x,vz=chain[1].z-tip.z,d=(dx*vx+dz*vz)/(l*Math.hypot(vx,vz));
+     if(d>score){score=d;best=chain.slice(1);}
+    }
+   }
+   if(best)points=end?[...points,...best]:[...best].reverse().concat(points);
+  }
+  const lengths=[0];for(let i=1;i<points.length;i++)lengths.push(lengths.at(-1)+Math.hypot(points[i].x-points[i-1].x,points[i].z-points[i-1].z));
+  return {...r,points,lengths};
+ });
+ const anchors=new Map();
+ for(const road of paths){const previous=anchors.get(road.name);if(!previous||road.lengths.at(-1)>previous.lengths.at(-1))anchors.set(road.name,road);}
+ for(const road of paths){const anchor=anchors.get(road.name);let bearing=equivalentYaw(roadYaw(anchor.points[0],anchor.points.at(-1)),0);road.bearings=[];
+  for(let i=1;i<road.points.length;i++){bearing=equivalentYaw(roadYaw(road.points[i-1],road.points[i]),bearing);road.bearings.push(bearing);}
+ }
+ return paths;
+}
+function pathPoint(road,d){
+ d=Math.max(0,Math.min(road.lengths.at(-1),d));
+ for(let i=1;i<road.points.length;i++)if(d<=road.lengths[i]){
+  const a=road.points[i-1],b=road.points[i],t=(d-road.lengths[i-1])/(road.lengths[i]-road.lengths[i-1]||1);
+  return {x:a.x+(b.x-a.x)*t,z:a.z+(b.z-a.z)*t};
+ }
+ return road.points.at(-1);
+}
+function projectRoad(p,road){
+ let distance=Infinity,along=0,segment=0;
+ for(let i=1;i<road.points.length;i++){
+  const a=road.points[i-1],b=road.points[i],dx=b.x-a.x,dz=b.z-a.z,l=Math.hypot(dx,dz);if(!l)continue;
+  const t=Math.max(0,Math.min(1,((p.x-a.x)*dx+(p.z-a.z)*dz)/(l*l))),d=Math.hypot(p.x-a.x-t*dx,p.z-a.z-t*dz);
+  if(d<distance){segment=i-1;distance=d;along=road.lengths[i-1]+t*l;}
+ }
+ // A short arc-length window rounds survey vertices without replacing an
+ // entire curved street with its end-to-end bearing.
+ const a=pathPoint(road,along-4),b=pathPoint(road,along+4);
+ const raw=roadYaw(a,b),base=road.bearings?.[segment];
+ return {road,distance,point:pathPoint(road,along),yaw:base===undefined?raw:equivalentYaw(raw,base)};
+}
+function equivalentYaw(yaw,reference){
+ const delta=angleDelta(reference,yaw);return reference+(Math.abs(delta)>Math.PI/2?angleDelta(reference,yaw+Math.PI):delta);
+}
+
+class StreetHeading{
+ constructor(roads){this.roads=cameraRoads(roads);}
+ reset(position){this.sample={...position};this.selected=null;this.update(position,true);}
+ update(position,force=false){
+  const dx=position.x-this.sample.x,dz=position.z-this.sample.z,d=Math.hypot(dx,dz);
+  if(force||d>=.3){
+   const hits=this.roads.map(r=>projectRoad(position,r));
+   for(const h of hits)h.score=h.distance+(d?3*(1-Math.abs(Math.sin(h.yaw)*dx/d+Math.cos(h.yaw)*dz/d)):0)-(h.road.id===this.selected?.8:0);
+   hits.sort((a,b)=>a.score-b.score);
+   const current=hits.find(h=>h.road.id===this.selected),best=hits[0];
+   if(best&&(!current||(best.distance<Math.max(3,(best.road.width||1)/2+2)&&best.score+.35<current.score&&best.distance+.6<current.distance)))this.selected=best.road.id;
+   this.sample={...position};
+  }
+  const road=this.roads.find(r=>r.id===this.selected);
+  if(road){this.yaw=projectRoad(position,road).yaw;this.label=road.name;}else{this.yaw=0;this.label='거리';}
+ }
+}
+
 export const OCCLUSION_ANGLES=[0,-Math.PI/9,Math.PI/9,-Math.PI*7/36,Math.PI*7/36];
 // U-PLEX east frontage and north plaza: use the opposite side of the building.
 export function uplexFrontCameraZone(position){
@@ -101,27 +173,29 @@ export function uplexFrontCameraZone(position){
  return x>=215&&x<=255&&z>=430&&z<=485;
 }
 export class OcclusionCamera{
- constructor(){this.reset();}
- reset(){this.yaw=this.targetYaw=0;this.enabled=true;this.blockedFor=0;this.clearFor=0;this.holdFor=0;}
+ constructor(position={x:0,z:0},roads=[]){this.street=new StreetHeading(roads);this.reset(position);}
+ reset(position={x:0,z:0}){this.street.reset(position);this.baseYaw=this.street.yaw;this.offsetYaw=0;this.yaw=this.targetYaw=this.baseYaw;this.enabled=true;this.blockedFor=0;this.clearFor=0;this.holdFor=0;}
  update(position,dt,scores=[]){
+  this.street.update(position);this.baseYaw=this.street.yaw;
   dt=Math.max(0,Math.min(dt,.1));this.holdFor=Math.max(0,this.holdFor-dt);
   if(this.enabled&&scores.length){
    const front=scores.find(s=>s.angle===0)?.score??0;
    this.blockedFor=front>0?this.blockedFor+dt:0;
    this.clearFor=front===0?this.clearFor+dt:0;
-   if(this.clearFor>=1){this.targetYaw=0;this.holdFor=0;}
+   if(this.clearFor>=1){this.offsetYaw=0;this.holdFor=0;}
    else if(this.blockedFor>=.45&&this.holdFor===0){
-    const current=scores.find(s=>Math.abs(s.angle-this.targetYaw)<.001)?.score??front;
+    const current=scores.find(s=>Math.abs(s.angle-this.offsetYaw)<.001)?.score??front;
     const best=[...scores].sort((a,b)=>a.score-b.score||Math.abs(a.angle)-Math.abs(b.angle))[0];
     if(uplexFrontCameraZone(position)){
      // Keep the requested side stable; the existing fade handles residual cover.
-     this.targetYaw=-Math.PI/9;this.holdFor=1.2;
-    }else if(best.score+.15<current){this.targetYaw=best.angle;this.holdFor=1.2;}
+     this.offsetYaw=-Math.PI/9;this.holdFor=1.2;
+    }else if(best.score+.15<current){this.offsetYaw=best.angle;this.holdFor=1.2;}
    }
   }
+  if(this.enabled)this.targetYaw=this.baseYaw+this.offsetYaw;
   const delta=angleDelta(this.yaw,this.targetYaw),step=delta*(1-Math.exp(-3*dt));this.yaw+=Math.max(-.55*dt,Math.min(.55*dt,step));
  }
  rotate(delta){this.enabled=false;this.targetYaw+=delta;this.blockedFor=this.clearFor=0;}
- toggle(){this.enabled=!this.enabled;if(this.enabled)this.targetYaw=0;this.blockedFor=this.clearFor=this.holdFor=0;}
- get status(){return !this.enabled?'수동 시점 · C로 가림 보정 복귀':Math.abs(this.targetYaw)>.01?'건물 가림 보정 · 잠시 옆으로 보기':Math.abs(this.yaw)>.02?'정면으로 복귀 중':'정면 고정 · 건물이 가릴 때만 회전';}
+ toggle(){this.enabled=!this.enabled;if(this.enabled){this.offsetYaw=0;this.targetYaw=this.baseYaw;}this.blockedFor=this.clearFor=this.holdFor=0;}
+ get status(){return !this.enabled?'수동 시점 · C로 길 따라 회전 복귀':Math.abs(this.offsetYaw)>.01?'길 따라 회전 · 건물 가림 보정':'길 따라 회전 · '+this.street.label;}
 }
