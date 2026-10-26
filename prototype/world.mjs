@@ -240,6 +240,11 @@ export class RoadAlignedCamera extends RouteCamera{
 }
 
 export const OCCLUSION_ANGLES=[0,-Math.PI/9,Math.PI/9,-Math.PI*7/36,Math.PI*7/36];
+// U-PLEX east frontage and north plaza: use the opposite side of the building.
+export function uplexFrontCameraZone(position){
+ const x=position.x/SCALE+225,z=position.z/SCALE+525;
+ return x>=215&&x<=255&&z>=430&&z<=485;
+}
 export class OcclusionCamera extends StableCamera{
  reset(){super.reset();this.blockedFor=0;this.clearFor=0;this.holdFor=0;}
  update(position,dt,scores=[]){
@@ -252,7 +257,10 @@ export class OcclusionCamera extends StableCamera{
    else if(this.blockedFor>=.45&&this.holdFor===0){
     const current=scores.find(s=>Math.abs(s.angle-this.targetYaw)<.001)?.score??front;
     const best=[...scores].sort((a,b)=>a.score-b.score||Math.abs(a.angle)-Math.abs(b.angle))[0];
-    if(best.score+.15<current){this.targetYaw=best.angle;this.holdFor=1.2;}
+    if(uplexFrontCameraZone(position)){
+     // Keep the requested side stable; the existing fade handles residual cover.
+     this.targetYaw=-Math.PI/9;this.holdFor=1.2;
+    }else if(best.score+.15<current){this.targetYaw=best.angle;this.holdFor=1.2;}
    }
   }
   const delta=angleDelta(this.yaw,this.targetYaw),step=delta*(1-Math.exp(-3*dt));this.yaw+=Math.max(-.55*dt,Math.min(.55*dt,step));

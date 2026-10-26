@@ -252,3 +252,17 @@ for(let i=0;i<300;i++)occ.update({},1/60,visible);assert.ok(Math.abs(occ.yaw)<.0
 occ.reset();for(let i=0;i<120;i++)occ.update({},1/60,OCCLUSION_ANGLES.map(angle=>({angle,score:1})));assert.equal(occ.yaw,0,'no pointless rotation when all angles blocked');
 occ.rotate(.4);for(let i=0;i<120;i++)occ.update({},1/60,blocked);assert.equal(occ.targetYaw,.4,'manual view is respected');occ.toggle();assert.equal(occ.targetYaw,0);
 console.log('PASS occlusion-only camera: fixed front, debounce, bounded turn, delayed return, blocked fallback and manual override');
+
+const uplexFront=toWorld([235,450]);
+occ.reset();for(let i=0;i<120;i++)occ.update(uplexFront,1/60,visible);
+assert.equal(occ.yaw,0,'U-PLEX still stays front-facing without obstruction');
+const rightClear=OCCLUSION_ANGLES.map(angle=>({angle,score:angle>0?0:1}));
+for(let i=0;i<180;i++)occ.update(uplexFront,1/60,rightClear);
+assert.equal(occ.targetYaw,-Math.PI/9,'U-PLEX turns opposite to the former positive angle');
+for(let i=0;i<180;i++)occ.update(uplexFront,1/60,rightClear);
+assert.equal(occ.targetYaw,-Math.PI/9,'U-PLEX side stays stable while blocked');
+for(let i=0;i<300;i++)occ.update(uplexFront,1/60,visible);
+assert.ok(Math.abs(occ.yaw)<.001,'U-PLEX returns to front when clear');
+occ.reset();for(let i=0;i<180;i++)occ.update(toWorld([275,400]),1/60,rightClear);
+assert.equal(occ.targetYaw,Math.PI/9,'other streets retain visibility-based direction');
+console.log('PASS U-PLEX opposite turn, stable side, clear-front return and other-street isolation');

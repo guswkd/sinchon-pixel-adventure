@@ -3,7 +3,7 @@ import {addHyundaiDetails} from './hyundai-model.mjs';
 import {DETAIL_ZONES,detailZoneAtSurvey} from './building-survey.mjs?v=4';
 import {addUplexDetails} from './uplex-model.mjs';
 import * as THREE from './vendor/three.module.min.js';
-import {createWorld,toWorld,inside,segmentDistance,sectionAt,walkable,findFree,movePlayer,TurnWalkInput,OcclusionCamera,OCCLUSION_ANGLES,RunControl,SCALE,PLAYER_HEIGHT} from './world.mjs?v=17';
+import {createWorld,toWorld,inside,segmentDistance,sectionAt,walkable,findFree,movePlayer,TurnWalkInput,OcclusionCamera,OCCLUSION_ANGLES,RunControl,SCALE,PLAYER_HEIGHT} from './world.mjs?v=18';
 import {paintAvatar,loadAvatar} from './avatar.mjs?v=5';
 const sprint=new RunControl();
 const $=s=>document.querySelector(s),canvas=$('#scene');
@@ -182,7 +182,8 @@ function sampleVisibility(){
 }
 
 function fadeOccluders(){direction.set(player.x,.9,player.z).sub(camera.position);const length=direction.length();raycaster.set(camera.position,direction.normalize());raycaster.far=length-.4;const hit=new Set(raycaster.intersectObjects(buildingMeshes,false).map(h=>h.object));
- for(const b of buildingVisuals){const fading=hit.has(b.mesh);for(const m of b.mats){m.transparent=fading;m.opacity=fading?.23:1;m.depthWrite=!fading;}b.rim.visible=!fading;if(b.sign)b.sign.visible=!fading;for(const d of b.details)d.visible=!fading;}}
+ hero.sprite.renderOrder=hit.size?10:0;hero.sprite.material.depthTest=hit.size===0;
+ for(const b of buildingVisuals){const fading=hit.has(b.mesh);for(const m of b.mats){if(m.transparent!==fading)m.needsUpdate=true;m.transparent=fading;m.opacity=fading?.23:1;m.depthWrite=!fading;}b.rim.visible=!fading;if(b.sign)b.sign.visible=!fading;for(const d of b.details)d.visible=!fading;}}
 function syncRun(){$('#run-toggle').setAttribute('aria-pressed',String(sprint.toggled));$('#run-toggle').textContent=sprint.toggled?'달리기 켜짐':'달리기 켜기';$('#pace').textContent=sprint.active?'달리기 · 방향을 누르면 출발':'걷기 · Shift를 누르면 달리기';}
 function updateHUD(){
  const zone=detailZoneAtSurvey(player.x/SCALE+225,player.z/SCALE+525);$('#detail-zone').textContent=zone?`${zone.id} · ${zone.id==='01-A'?'유플렉스 외관 1차 반영':zone.id==='01-C'?'현백 본관 외관 1차 반영':'건물 상세화 예정'}`:'';
