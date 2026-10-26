@@ -3,7 +3,7 @@ import {addHyundaiDetails} from './hyundai-model.mjs';
 import {DETAIL_ZONES,detailZoneAtSurvey} from './building-survey.mjs?v=4';
 import {addUplexDetails} from './uplex-model.mjs';
 import * as THREE from './vendor/three.module.min.js';
-import {createWorld,toWorld,inside,segmentDistance,sectionAt,walkable,findFree,movePlayer,TurnWalkInput,RoadAlignedCamera,RunControl,SCALE,PLAYER_HEIGHT} from './world.mjs?v=16';
+import {createWorld,toWorld,inside,segmentDistance,sectionAt,walkable,findFree,movePlayer,TurnWalkInput,OcclusionCamera,OCCLUSION_ANGLES,RunControl,SCALE,PLAYER_HEIGHT} from './world.mjs?v=17';
 import {paintAvatar,loadAvatar} from './avatar.mjs?v=5';
 const sprint=new RunControl();
 const $=s=>document.querySelector(s),canvas=$('#scene');
@@ -16,7 +16,7 @@ try{renderer=new THREE.WebGLRenderer({canvas,antialias:false,alpha:false,powerPr
 renderer.setPixelRatio(1);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.setClearColor('#c5e5fa');
 const scene=new THREE.Scene();scene.background=new THREE.Color('#c5e5fa');scene.fog=new THREE.Fog('#c5e5fa',95,150);
 scene.add(new THREE.HemisphereLight('#ffffff','#a8bdd8',2.0));const sun=new THREE.DirectionalLight('#fff9ee',1.1);sun.position.set(-40,65,30);scene.add(sun);
-const camera=new THREE.OrthographicCamera(-24,24,16,-16,.1,200);const view=new RoadAlignedCamera(world.spawn,world.roads);let yaw=view.yaw,zoomed=false;
+const camera=new THREE.OrthographicCamera(-24,24,16,-16,.1,200);const view=new OcclusionCamera();let yaw=view.yaw,zoomed=false;
 let player={...world.spawn},facing={x:0,z:1},distance=0,walkClock=0,walking=false,dialog=false,mapOpen=false,last=0,noticeTimer=0;
 const visited=new Set(),buildingVisuals=[],actors=[],buildingMeshes=[];
 const follow=new THREE.Vector3(player.x,0,player.z);
@@ -141,7 +141,7 @@ function showNotice(text){$('#notice').textContent=text;$('#notice').classList.a
 function nearest(){return world.landmarks.map(p=>({...p,d:Math.hypot(player.x-p.x,player.z-p.z)})).sort((a,b)=>a.d-b.d)[0];}
 function inspect(){if(mapOpen){toggleMap(false);return;}if(dialog){closeDialog();return;}const p=nearest();if(p.d>5){showNotice('장소 가까이에서 살펴볼 수 있어요.');return;}input.clear();dialog=true;$('#speaker').textContent=p.name;$('#words').textContent=p.text;$('#speech').hidden=false;$('#close-speech').focus();}
 function closeDialog(){dialog=false;$('#speech').hidden=true;input.clear();canvas.focus();}
-function rotate(delta){view.rotate(delta,player);syncAuto();showNotice(view.enabled?'길을 따라 시점이 돌아가요.':'수동 시점 · C를 누르면 길 따라 회전해요.');}
+function rotate(delta){view.rotate(delta,player);syncAuto();showNotice(view.enabled?'건물이 가릴 때만 시점을 보정해요.':'수동 시점 · C를 누르면 가림 보정으로 돌아와요.');}
 function syncAuto(){$('#auto').setAttribute('aria-pressed',String(view.enabled));$('#auto b').textContent=view.enabled?'켜짐':'꺼짐';}
 function toggleAuto(){view.toggle(player);syncAuto();canvas.focus();}
 function toggleZoom(){zoomed=!zoomed;$('#zoom').innerHTML=(zoomed?'멀리 보기':'가까이 보기')+' <kbd>Z</kbd>';resize();canvas.focus();}
@@ -165,21 +165,38 @@ function drawMap(){const c=$('#mini').getContext('2d'),w=360,h=420,b=world.bound
  for(const [i,f] of world.landmarks.entries()){const q=p(f);c.fillStyle=i<3?'#42674f':'#426b87';c.beginPath();c.arc(q.x,q.y,7,0,Math.PI*2);c.fill();c.fillStyle='#fff8e2';c.textAlign='center';c.fillText(String(i+1),q.x,q.y+3);}c.textAlign='start';
  const me=p(player);c.fillStyle='#fff9df';c.beginPath();c.arc(me.x,me.y,6,0,7);c.fill();c.fillStyle='#c85636';c.beginPath();c.arc(me.x,me.y,4,0,7);c.fill();}
 const raycaster=new THREE.Raycaster(),direction=new THREE.Vector3();let occlusionFrame=0;
+const visibilityRay=new THREE.Raycaster(),visibilityOrigin=new THREE.Vector3(),visibilityDirection=new THREE.Vector3();let visibilityAge=1,visibilityScores=[];
+function sampleVisibility(){
+ // Test the opaque building envelopes even when the fallback fade is active.
+ // Match the rendered camera offset; sample body, head and a short stretch ahead.
+ scene.updateMatrixWorld(true);
+ return OCCLUSION_ANGLES.map(angle=>{
+  visibilityOrigin.set(follow.x+Math.sin(angle)*39,38,follow.z+Math.cos(angle)*39);let score=0;
+  for(const [height,ahead,weight] of [[.9,0,.4],[2.3,0,.4],[.3,2,.2]]){
+   visibilityDirection.set(player.x,height,player.z-ahead).sub(visibilityOrigin);const length=visibilityDirection.length();
+   visibilityRay.set(visibilityOrigin,visibilityDirection.normalize());visibilityRay.far=length-.25;
+   if(visibilityRay.intersectObjects(buildingMeshes,false).length)score+=weight;
+  }
+  return {angle,score};
+ });
+}
+
 function fadeOccluders(){direction.set(player.x,.9,player.z).sub(camera.position);const length=direction.length();raycaster.set(camera.position,direction.normalize());raycaster.far=length-.4;const hit=new Set(raycaster.intersectObjects(buildingMeshes,false).map(h=>h.object));
  for(const b of buildingVisuals){const fading=hit.has(b.mesh);for(const m of b.mats){m.transparent=fading;m.opacity=fading?.23:1;m.depthWrite=!fading;}b.rim.visible=!fading;if(b.sign)b.sign.visible=!fading;for(const d of b.details)d.visible=!fading;}}
 function syncRun(){$('#run-toggle').setAttribute('aria-pressed',String(sprint.toggled));$('#run-toggle').textContent=sprint.toggled?'달리기 켜짐':'달리기 켜기';$('#pace').textContent=sprint.active?'달리기 · 방향을 누르면 출발':'걷기 · Shift를 누르면 달리기';}
 function updateHUD(){
  const zone=detailZoneAtSurvey(player.x/SCALE+225,player.z/SCALE+525);$('#detail-zone').textContent=zone?`${zone.id} · ${zone.id==='01-A'?'유플렉스 외관 1차 반영':zone.id==='01-C'?'현백 본관 외관 1차 반영':'건물 상세화 예정'}`:'';
  syncRun();const near=nearest(),section=sectionAt(player),underBridge=world.buildings.some(b=>b.baseHeight>=PLAYER_HEIGHT+.1&&inside(player,b.points));
- const location=section===6?(player.z<toWorld([0,350]).z?'06 · 명물길 동쪽 · 신촌역로':'06 · 신촌 동쪽'):section===5?'05 · 캠퍼스 북쪽 · 스포츠과학관':section===4?(player.x>toWorld([275,0]).x?'04 · 백주년기념관':'04 · 백양로 · 공학관'):section===3?(player.z<toWorld([0,189]).z?'03 · 백양로 초입':player.z<toWorld([0,205]).z?'03 · 연세대 정문':'03 · 성산로 횡단'):section===2?(view.pose.region==='myeongmul'?'02 · 명물길':player.z<-94?'02 · 창천교회 앞':'02 · 연세로 상가'):underBridge?'현백–U-PLEX · 연결통로 아래':player.z<-25?'U-PLEX · 빨잠 광장':player.x<-5&&player.z<9?'현대백화점 · 연결 골목':'신촌역 · 연세로';
+ const location=section===6?(player.z<toWorld([0,350]).z?'06 · 명물길 동쪽 · 신촌역로':'06 · 신촌 동쪽'):section===5?'05 · 캠퍼스 북쪽 · 스포츠과학관':section===4?(player.x>toWorld([275,0]).x?'04 · 백주년기념관':'04 · 백양로 · 공학관'):section===3?(player.z<toWorld([0,189]).z?'03 · 백양로 초입':player.z<toWorld([0,205]).z?'03 · 연세대 정문':'03 · 성산로 횡단'):section===2?(player.x>toWorld([275,0]).x?'02 · 명물길':player.z<-94?'02 · 창천교회 앞':'02 · 연세로 상가'):underBridge?'현백–U-PLEX · 연결통로 아래':player.z<-25?'U-PLEX · 빨잠 광장':player.x<-5&&player.z<9?'현대백화점 · 연결 골목':'신촌역 · 연세로';
  $('#place').textContent=location;$('#camera-status').textContent=view.status;$('#steps').textContent=Math.round(distance/SCALE*1.5)+' m 산책';$('#hint').textContent=near.d<5?near.name+' · Space로 살펴보기':'짧게 방향 · 길게 '+(sprint.active?'달리기':'걷기')+' · Q / R 시점 회전';$('#north').style.transform=`rotate(${-yaw*180/Math.PI}deg)`;
  for(const el of document.querySelectorAll('[data-section]')){if(Number(el.dataset.section)===section)el.setAttribute('aria-current','location');else el.removeAttribute('aria-current');}
  for(const p of world.landmarks)if(Math.hypot(player.x-p.x,player.z-p.z)<5&&!visited.has(p.id)){visited.add(p.id);document.querySelector(`[data-stop="${p.id}"]`).classList.add('visited');showNotice(visited.size===world.landmarks.length?'열린 구간의 모든 장소를 걸었어요.':p.name+'에 도착했어요.');}
 }
 function frame(ms){const dt=Math.min((ms-last)/1000||0,.05);last=ms;
- if(!dialog&&!mapOpen){const control=input.update(dt,yaw);if(control.walking)control.vector=view.guideMotion(player,control.vector,input.signature,dt);if(control.facing)facing=control.vector;walking=false;if(control.walking){const next=movePlayer(world,player,control.vector,sprint.speed*dt),d=Math.hypot(next.x-player.x,next.z-player.z);walking=d>.0001;distance+=d;player=next;if(walking)walkClock+=dt;}
+ if(!dialog&&!mapOpen){const control=input.update(dt,yaw);if(control.facing)facing=control.vector;walking=false;if(control.walking){const next=movePlayer(world,player,control.vector,sprint.speed*dt),d=Math.hypot(next.x-player.x,next.z-player.z);walking=d>.0001;distance+=d;player=next;if(walking)walkClock+=dt;}
  }else walking=false;
- view.update(player,dt);yaw=view.yaw;
+ visibilityAge+=dt;if(view.enabled&&visibilityAge>=.2){visibilityScores=sampleVisibility();visibilityAge=0;}
+ view.update(player,dt,visibilityScores);yaw=view.yaw;
  // Smooth the player's anchor, not the rotating look-ahead offset. Otherwise
  // turning the camera alone makes the stationary hero drift across the screen.
  follow.lerp(new THREE.Vector3(player.x,0,player.z),1-Math.exp(-9*dt));

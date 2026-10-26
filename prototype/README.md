@@ -72,3 +72,9 @@ This supersedes the north-fixed update. Gameplay now uses `RoadAlignedCamera`: t
 Validation adds opposite-entry heading, curved route/reverse, real Myeongmul fork, held-input and manual-restore checks. Direct browser play verified Yonsei-ro→Myeongmul automatic rotation (without Q/R), then forward/backward travel with the same Myeongmul view. StableCamera and the historical RouteCamera tests remain reference comparisons, not the active gameplay policy.
 
 U-PLEX corner movement fix (2026-10-24): in road-follow camera mode, longitudinal Up/Down input that is already aligned with a nearby selected road follows its smoothed tangent. A bounded lateral correction eases toward the surveyed centreline instead of preserving an initial ray into the U-PLEX facade. This changes the earlier held-heading policy only for guided longitudinal movement. Left/right/diagonal input immediately releases guidance; manual camera and off-road input retain free movement. No teleporting or collision removal. Tests reproduce the station-to-plaza held-Up approach at 30/60/120 Hz, curved-road continuation and lateral release. Direct browser checks cover the U-PLEX approach, Myeongmul turn and subsequent forward/reverse travel.
+
+### 2026-10-26: 정면 고정 + 건물 가림 보정
+
+현재 실행 카메라는 `OcclusionCamera`다. 이전 길 방향 자동 회전과 이동 벡터 보정은 실행 경로에서 제거했다. 기본은 북쪽 정면이며, 건물 외곽 메시가 캐릭터 몸·머리 또는 바로 앞을 0.45초 이상 가릴 때만 좌우 20°/35° 후보 중 가림이 줄어드는 시점으로 천천히 이동한다. 정면 시야가 1초 이상 열리면 복귀한다. 후보 시점도 모두 막히면 기존 건물 투명 처리를 유지한다. Q/R 수동 회전, C 자동 복귀는 유지한다.
+
+키를 누르는 동안 이동 방향은 입력 시작 시점 기준으로 유지한다. 카메라 보정 중에도 자동으로 휘지 않으며, 키를 놓았다 다시 누르면 현재 화면 기준을 적용한다. 카메라 상태 전이·짧은 가림 무시·복귀 지연·회전 속도 제한·수동 모드 테스트를 추가했다. 브라우저에서 신촌역→빨잠 이동 시 정면 유지, 유플렉스 옆 가림 보정, 연세로사거리 진입 후 정면 복귀를 확인했다.

@@ -240,3 +240,15 @@ const guiding=new RoadAlignedCamera(curve[0].points[0],curve),curveKeys=new Turn
 for(let i=0;i<800;i++){const c=curveKeys.update(.01,guiding.yaw);if(c.walking){const v=guiding.guideMotion(gp,c.vector,curveKeys.signature,.01);gp={x:gp.x+v.x*.07,z:gp.z+v.z*.07};}guiding.update(gp,.01);}
 assert.ok(gp.x>10&&gp.z<-15,'held Up follows curved road rather than the initial world ray');
 console.log('PASS U-PLEX held-Up clearance at 30/60/120 Hz, curve following and lateral release');
+const {OcclusionCamera,OCCLUSION_ANGLES}=await import('../prototype/world.mjs');
+const occ=new OcclusionCamera(),visible=OCCLUSION_ANGLES.map(angle=>({angle,score:0}));
+for(let i=0;i<120;i++)occ.update({x:i,z:-i},1/60,visible);assert.equal(occ.yaw,0,'walking and turns alone never rotate camera');
+const blocked=OCCLUSION_ANGLES.map(angle=>({angle,score:angle<0?0:1}));
+for(let i=0;i<20;i++)occ.update({},1/60,blocked);assert.equal(occ.targetYaw,0,'brief occlusion ignored');
+for(let i=0;i<120;i++){const y=occ.yaw;occ.update({},1/60,blocked);assert.ok(Math.abs(occ.yaw-y)<=.55/60+1e-9);}
+assert.equal(occ.targetYaw,-Math.PI/9,'smallest clear angle wins');
+for(let i=0;i<30;i++)occ.update({},1/60,visible);assert.notEqual(occ.targetYaw,0,'brief clearance does not cause wobble');
+for(let i=0;i<300;i++)occ.update({},1/60,visible);assert.ok(Math.abs(occ.yaw)<.001,'returns to front after clearance');
+occ.reset();for(let i=0;i<120;i++)occ.update({},1/60,OCCLUSION_ANGLES.map(angle=>({angle,score:1})));assert.equal(occ.yaw,0,'no pointless rotation when all angles blocked');
+occ.rotate(.4);for(let i=0;i<120;i++)occ.update({},1/60,blocked);assert.equal(occ.targetYaw,.4,'manual view is respected');occ.toggle();assert.equal(occ.targetYaw,0);
+console.log('PASS occlusion-only camera: fixed front, debounce, bounded turn, delayed return, blocked fallback and manual override');

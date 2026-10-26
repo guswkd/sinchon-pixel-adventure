@@ -238,3 +238,26 @@ export class RoadAlignedCamera extends RouteCamera{
  rotate(delta){this.enabled=false;this.preview=null;this.guide=null;this.targetYaw+=delta;}
  get status(){return this.enabled?'길 따라 회전 · '+this.pose.label+(this.turning?' · 부드럽게 전환 중':''):'수동 시점 · C로 길 따라 회전';}
 }
+
+export const OCCLUSION_ANGLES=[0,-Math.PI/9,Math.PI/9,-Math.PI*7/36,Math.PI*7/36];
+export class OcclusionCamera extends StableCamera{
+ reset(){super.reset();this.blockedFor=0;this.clearFor=0;this.holdFor=0;}
+ update(position,dt,scores=[]){
+  dt=Math.max(0,Math.min(dt,.1));this.holdFor=Math.max(0,this.holdFor-dt);
+  if(this.enabled&&scores.length){
+   const front=scores.find(s=>s.angle===0)?.score??0;
+   this.blockedFor=front>0?this.blockedFor+dt:0;
+   this.clearFor=front===0?this.clearFor+dt:0;
+   if(this.clearFor>=1){this.targetYaw=0;this.holdFor=0;}
+   else if(this.blockedFor>=.45&&this.holdFor===0){
+    const current=scores.find(s=>Math.abs(s.angle-this.targetYaw)<.001)?.score??front;
+    const best=[...scores].sort((a,b)=>a.score-b.score||Math.abs(a.angle)-Math.abs(b.angle))[0];
+    if(best.score+.15<current){this.targetYaw=best.angle;this.holdFor=1.2;}
+   }
+  }
+  const delta=angleDelta(this.yaw,this.targetYaw),step=delta*(1-Math.exp(-3*dt));this.yaw+=Math.max(-.55*dt,Math.min(.55*dt,step));
+ }
+ rotate(delta){super.rotate(delta);this.blockedFor=this.clearFor=0;}
+ toggle(){super.toggle();this.blockedFor=this.clearFor=this.holdFor=0;}
+ get status(){return !this.enabled?'수동 시점 · C로 가림 보정 복귀':Math.abs(this.targetYaw)>.01?'건물 가림 보정 · 잠시 옆으로 보기':Math.abs(this.yaw)>.02?'정면으로 복귀 중':'정면 고정 · 건물이 가릴 때만 회전';}
+}
