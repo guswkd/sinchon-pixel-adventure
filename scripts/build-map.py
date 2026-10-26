@@ -61,6 +61,5 @@ for n in nodes.values():
  if t.get('name') in ['홍익문고','연세대 정문','현대백화점 신촌역 지하통로','빨잠 (빨간 잠망경)','신촌역 빨잠 출구','연세로사거리']:
   pois.append({'name':t['name'],**location})
 data={'source':'© OpenStreetMap contributors, ODbL 1.0','sourceURL':'https://www.openstreetmap.org/copyright','bounds':{'west':west,'north':north,'east':east,'south':south},'metresPerTile':6,'w':w,'h':h,'roads':roads,'buildings':buildings,'parks':parks,'exits':sorted(exits,key=lambda e:e['number']),'pois':pois}
-(ROOT/'assets/world-data.js').write_text('/* Geographic data: © OpenStreetMap contributors, ODbL 1.0. */\nconst WORLD_DATA = '+json.dumps(data,ensure_ascii=False,separators=(',',':'))+';\n')
 (ROOT/'reference/map-data.json').write_text(json.dumps(data,ensure_ascii=False,separators=(',',':')))
 print('World:',w,h,'Roads:',len(roads),'Buildings:',len(buildings),'Exits:',exits,'POIs:',pois)

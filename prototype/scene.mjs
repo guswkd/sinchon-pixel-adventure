@@ -1,3 +1,4 @@
+import {paintSprite} from './npc-sprites.mjs';
 import {paintShopWall,paintShopFront} from './shop-kit.mjs';
 import {addHyundaiDetails} from './hyundai-model.mjs';
 import {DETAIL_ZONES,detailZoneAtSurvey} from './building-survey.mjs?v=4';
@@ -12,7 +13,7 @@ const world=createWorld(CITY_GEOGRAPHY),input=new TurnWalkInput();
 $('#route-stops').innerHTML=world.landmarks.map((p,i)=>`<span data-stop="${p.id}">${String(i+1).padStart(2,'0')} ${p.name}</span>`).join('');
 $('#map-legend').innerHTML=world.landmarks.map((p,i)=>`<span><b>${i+1}</b> ${p.name}</span>`).join('');
 let renderer;
-try{renderer=new THREE.WebGLRenderer({canvas,antialias:false,alpha:false,powerPreference:'low-power'});}catch(error){$('#loading').textContent='이 브라우저에서는 입체 화면을 켤 수 없어요. 위의 기존 신촌 모험으로 돌아갈 수 있어요.';throw error;}
+try{renderer=new THREE.WebGLRenderer({canvas,antialias:false,alpha:false,powerPreference:'low-power'});}catch(error){$('#loading').textContent='이 브라우저에서는 입체 화면을 켤 수 없어요. WebGL을 지원하는 브라우저에서 다시 열어 주세요.';throw error;}
 renderer.setPixelRatio(1);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.setClearColor('#c5e5fa');
 const scene=new THREE.Scene();scene.background=new THREE.Color('#c5e5fa');scene.fog=new THREE.Fog('#c5e5fa',95,150);
 scene.add(new THREE.HemisphereLight('#ffffff','#a8bdd8',2.0));const sun=new THREE.DirectionalLight('#fff9ee',1.1);sun.position.set(-40,65,30);scene.add(sun);
